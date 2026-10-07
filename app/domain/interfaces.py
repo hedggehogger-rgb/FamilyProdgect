@@ -1,3 +1,4 @@
+# app/domain/interfaces.py
 from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import Dict, List, Optional
@@ -25,6 +26,10 @@ class IAccountRepository(ABC):
     def find_all(self) -> List[Account]:
         pass
 
+    @abstractmethod
+    def delete(self, account_id: str) -> bool:
+        pass
+
 
 class ICategoryRepository(ABC):
 
@@ -40,6 +45,14 @@ class ICategoryRepository(ABC):
     def get_all(self) -> List[Category]:
         pass
 
+    @abstractmethod
+    def update(self, category: Category) -> None:
+        pass
+
+    @abstractmethod
+    def delete(self, category_id: str) -> bool:
+        pass
+
 
 class ITransactionRepository(ABC):
 
@@ -48,9 +61,17 @@ class ITransactionRepository(ABC):
         pass
 
     @abstractmethod
+    def get_by_id(self, transaction_id: str) -> Optional[Transaction]:
+        pass
+
+    @abstractmethod
     def get_all(self) -> List[Transaction]:
         pass
 
     @abstractmethod
     def get_by_period(self, year: int, month: int) -> List[Transaction]:
+        pass
+
+    @abstractmethod
+    def delete(self, transaction_id: str) -> bool:
         pass
