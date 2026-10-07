@@ -90,7 +90,7 @@ get_category_repository = get_category_repo
 
 
 def get_transaction_repo() -> PostgresTransactionRepository:
-    return transaction_repository
+    return transaction_repository #uuuu
 
 
 get_transaction_repository = get_transaction_repo
