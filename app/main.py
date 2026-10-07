@@ -18,14 +18,13 @@ from app.infrastructure.database import init_db
 from app.services.piggy_bank_service import PiggyBankService
 from app.services.scheduler_service import ScheduledTasksWorker
 
-# 1. Создаем экземпляр приложения
 app = FastAPI(
     title="Family Finance Backend",
     description="REST API для семейного бюджета (Web / Vue.js, Tablet, Mobile)",
     version="1.0.0",
 )
 
-# 2. CORS (для Vue 3 / Vite)
+# CORS для локальной разработки с фронтендом (Vite / Vue 3 на порту 5173 и любым другим)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,16 +33,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Инициализация таблиц в PostgreSQL
+# Создание таблиц БД при старте
 init_db()
 
-# 4. Запуск фонового планировщика автоплатежей и копилок
+# Запуск планировщика автоплатежей
 piggy_svc = PiggyBankService(account_service, currency_converter)
 scheduler_worker = ScheduledTasksWorker(account_service, piggy_svc)
 scheduler_worker.start()
 
 
-# 5. Глобальные обработчики ошибок
 @app.exception_handler(ValueError)
 def value_error_handler(request: Request, exc: ValueError):
     return JSONResponse(
@@ -59,7 +57,7 @@ def key_error_handler(request: Request, exc: KeyError):
     )
 
 
-# 6. Подключаем все роутеры приложения
+# Подключаем роутеры напрямую
 app.include_router(auth.router)
 app.include_router(accounts.router)
 app.include_router(categories.router)
@@ -70,7 +68,6 @@ app.include_router(limits.router)
 app.include_router(piggy_banks.router)
 
 
-# 7. Служебные эндпоинты
 @app.get("/", include_in_schema=False)
 def root():
     return RedirectResponse(url="/docs")
@@ -83,7 +80,6 @@ def health_check():
 
 @app.post("/system/run-scheduled-tasks", tags=["System"])
 def trigger_scheduled_tasks():
-    """Принудительный вызов фоновых платежей (для тестов, не дожидаясь полуночи)."""
     scheduler_worker.run_daily_tasks()
     return {
         "status": "success",

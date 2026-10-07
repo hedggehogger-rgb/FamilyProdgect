@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query
-from app.api.dependencies import get_budget_service
+from app.api.dependencies import get_budget_service, get_current_user
 from app.api.schemas import BudgetForecastResponseSchema
 from app.domain.models import Currency
+from app.infrastructure.database import UserModel
 from app.services.budget_service import BudgetService
 
 router = APIRouter(prefix="/budget", tags=["Budget Planning"])
@@ -18,12 +19,14 @@ def get_category_budget_forecast(
     months_back: int = Query(
         default=3, ge=1, le=12, description="Глубина анализа в месяцах (1-12)"
     ),
+    current_user: UserModel = Depends(get_current_user),
     svc: BudgetService = Depends(get_budget_service),
 ):
     forecast = svc.predict_category_budget(
         category_id=category_id,
         target_currency=target_currency,
         months_back=months_back,
+        family_group_id=current_user.family_group_id,
     )
     return BudgetForecastResponseSchema(
         category_id=forecast.category_id,

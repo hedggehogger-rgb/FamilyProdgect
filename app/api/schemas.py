@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Generic, List, Optional, TypeVar
 from pydantic import BaseModel, Field, model_validator
 from app.domain.models import (
     Author,
@@ -11,28 +11,31 @@ from app.domain.models import (
     TransactionType,
 )
 
-# ==========================================
-# 1. АВТОРИЗАЦИЯ И СЕМЬЯ (AUTH & FAMILY)
-# ==========================================
+T = TypeVar("T")
 
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T]
+    total: int
+    limit: int
+    offset: int
+
+
+class ActionStatusResponse(BaseModel):
+    status: str = "success"
+    message: str
+    id: Optional[str] = None
 
 class FamilyRegisterSchema(BaseModel):
-    family_name: str = Field(
-        ..., min_length=2, description="Название семьи (например, 'Ивановы')"
-    )
-    first_user_name: str = Field(
-        ..., min_length=2, description="Имя (например, Алексей)"
-    )
+    family_name: str = Field(..., min_length=2, description="Название семьи")
+    first_user_name: str = Field(..., min_length=2, description="Имя пользователя")
     first_user_email: str = Field(...)
     first_user_password: str = Field(..., min_length=6)
     first_user_role: Author = Author.HUSBAND
 
 
 class UserJoinFamilySchema(BaseModel):
-    family_group_id: str = Field(
-        ..., description="ID существующей семьи для подключения"
-    )
-    name: str = Field(..., min_length=2, description="Имя (например, Елена)")
+    family_group_id: str = Field(..., description="ID существующей семьи")
+    name: str = Field(..., min_length=2, description="Имя пользователя")
     email: str = Field(...)
     password: str = Field(..., min_length=6)
     role: Author = Author.WIFE
@@ -59,11 +62,6 @@ class UserResponseSchema(BaseModel):
     family_group_id: str
 
 
-# ==========================================
-# 2. СЧЕТА (ACCOUNTS)
-# ==========================================
-
-
 class AccountCreateSchema(BaseModel):
     id: str = Field(..., min_length=1)
     name: str = Field(..., min_length=1, max_length=100)
@@ -78,11 +76,6 @@ class AccountResponseSchema(BaseModel):
     currency: Currency
     balance: Decimal
     is_investment: bool
-
-
-# ==========================================
-# 3. КАТЕГОРИИ (CATEGORIES)
-# ==========================================
 
 
 class CategoryCreateSchema(BaseModel):
@@ -141,11 +134,6 @@ class CategoryResponseSchema(BaseModel):
     created_at: datetime
 
 
-# ==========================================
-# 4. ТРАНЗАКЦИИ И ПЕРЕВОДЫ (TRANSACTIONS)
-# ==========================================
-
-
 class TransactionCreateSchema(BaseModel):
     id: Optional[str] = None
     type: TransactionType
@@ -154,7 +142,7 @@ class TransactionCreateSchema(BaseModel):
     currency: Currency
     account_id: str = Field(..., min_length=1)
     to_account_id: Optional[str] = None
-    author: Author = Author.HUSBAND
+    author: Optional[Author] = None
     note: str = ""
     date: Optional[datetime] = None
 
@@ -164,7 +152,7 @@ class TransferCreateSchema(BaseModel):
     to_account_id: str = Field(..., min_length=1)
     amount: Decimal = Field(..., gt=0)
     currency: Currency = Currency.RUB
-    author: Author = Author.HUSBAND
+    author: Optional[Author] = None
     note: str = "Перевод между счетами"
 
 
@@ -179,11 +167,6 @@ class TransactionResponseSchema(BaseModel):
     author: Author
     note: str
     date: datetime
-
-
-# ==========================================
-# 5. АНАЛИТИКА И ПРОГНОЗ БЮДЖЕТА
-# ==========================================
 
 
 class MonthlyReportResponseSchema(BaseModel):
@@ -204,11 +187,6 @@ class BudgetForecastResponseSchema(BaseModel):
     months_analyzed: int
     is_active_next_month: bool
     explanation: str
-
-
-# ==========================================
-# 6. ЛИМИТЫ (LIMITS)
-# ==========================================
 
 
 class SetLimitSchema(BaseModel):
@@ -233,11 +211,6 @@ class LimitStatusResponseSchema(BaseModel):
     status_marker: str
 
 
-# ==========================================
-# 7. КОПИЛКИ (PIGGY BANKS)
-# ==========================================
-
-
 class PiggyBankCreateSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     target_amount: Decimal = Field(..., gt=0)
@@ -251,12 +224,12 @@ class PiggyBankCreateSchema(BaseModel):
 
 class PiggyBankDepositSchema(BaseModel):
     amount: Decimal = Field(..., gt=0)
-    author: Author = Author.HUSBAND
+    author: Optional[Author] = None
     note: Optional[str] = None
 
 
 class PiggyBankNoteCreateSchema(BaseModel):
-    author: Author = Author.HUSBAND
+    author: Optional[Author] = None
     text: str = Field(..., min_length=1)
 
 

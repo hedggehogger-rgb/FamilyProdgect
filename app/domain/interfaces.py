@@ -1,4 +1,3 @@
-# app/domain/interfaces.py
 from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import Dict, List, Optional
@@ -19,15 +18,21 @@ class IAccountRepository(ABC):
         pass
 
     @abstractmethod
-    def find_by_id(self, account_id: str) -> Optional[Account]:
+    def find_by_id(
+        self, account_id: str, family_group_id: Optional[str] = None
+    ) -> Optional[Account]:
         pass
 
     @abstractmethod
-    def find_all(self) -> List[Account]:
+    def find_all(
+        self, family_group_id: Optional[str] = None
+    ) -> List[Account]:
         pass
 
     @abstractmethod
-    def delete(self, account_id: str) -> bool:
+    def delete(
+        self, account_id: str, family_group_id: Optional[str] = None
+    ) -> bool:
         pass
 
 
@@ -38,11 +43,15 @@ class ICategoryRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, category_id: str) -> Optional[Category]:
+    def get_by_id(
+        self, category_id: str, family_group_id: Optional[str] = None
+    ) -> Optional[Category]:
         pass
 
     @abstractmethod
-    def get_all(self) -> List[Category]:
+    def get_all(
+        self, family_group_id: Optional[str] = None
+    ) -> List[Category]:
         pass
 
     @abstractmethod
@@ -50,7 +59,9 @@ class ICategoryRepository(ABC):
         pass
 
     @abstractmethod
-    def delete(self, category_id: str) -> bool:
+    def delete(
+        self, category_id: str, family_group_id: Optional[str] = None
+    ) -> bool:
         pass
 
 
@@ -61,17 +72,25 @@ class ITransactionRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, transaction_id: str) -> Optional[Transaction]:
+    def get_by_id(
+        self, transaction_id: str, family_group_id: Optional[str] = None
+    ) -> Optional[Transaction]:
         pass
 
     @abstractmethod
-    def get_all(self) -> List[Transaction]:
+    def get_all(
+        self, family_group_id: Optional[str] = None
+    ) -> List[Transaction]:
         pass
 
     @abstractmethod
-    def get_by_period(self, year: int, month: int) -> List[Transaction]:
+    def get_by_period(
+        self, year: int, month: int, family_group_id: Optional[str] = None
+    ) -> List[Transaction]:
         pass
 
     @abstractmethod
-    def delete(self, transaction_id: str) -> bool:
+    def delete(
+        self, transaction_id: str, family_group_id: Optional[str] = None
+    ) -> bool:
         pass

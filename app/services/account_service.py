@@ -1,7 +1,8 @@
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
+import uuid
 from app.domain.interfaces import IAccountRepository, ITransactionRepository
-from app.domain.models import Account, Transaction, TransactionType
+from app.domain.models import Account, Author, Transaction, TransactionType
 from app.services.currency_service import CurrencyConverter
 
 
@@ -18,44 +19,51 @@ class AccountService:
         self._converter = converter
 
     def create_account(self, account: Account) -> None:
-        if self._account_repo.find_by_id(account.id):
+        if self._account_repo.find_by_id(account.id, account.family_group_id):
             raise ValueError(f"Счёт '{account.id}' уже существует")
         self._account_repo.save(account)
 
-    def get_account(self, account_id: str) -> Account:
-        acc = self._account_repo.find_by_id(account_id)
+    def get_account(
+        self, account_id: str, family_group_id: Optional[str] = None
+    ) -> Account:
+        acc = self._account_repo.find_by_id(account_id, family_group_id)
         if not acc:
             raise KeyError(f"Счёт '{account_id}' не найден")
         return acc
 
+    def get_all_accounts(
+        self, family_group_id: Optional[str] = None
+    ) -> List[Account]:
+        return self._account_repo.find_all(family_group_id)
+
     def add_transaction(self, transaction: Transaction) -> None:
-        """Применяет транзакцию и обновляет балансы счетов."""
         self._apply_balance_changes(transaction, rollback=False)
         self._tx_repo.save(transaction)
 
-    def delete_transaction(self, transaction_id: str) -> None:
-        """Удаляет транзакцию и аккуратно откатывает баланс счетов."""
-        tx = self._tx_repo.get_by_id(transaction_id)
+    def delete_transaction(
+        self, transaction_id: str, family_group_id: Optional[str] = None
+    ) -> None:
+        tx = self._tx_repo.get_by_id(transaction_id, family_group_id)
         if not tx:
             raise KeyError(f"Транзакция '{transaction_id}' не найдена")
 
-        # Откатываем финансовые изменения
         self._apply_balance_changes(tx, rollback=True)
-        self._tx_repo.delete(transaction_id)
+        self._tx_repo.delete(transaction_id, family_group_id)
 
     def transfer_funds(
         self,
         from_account_id: str,
         to_account_id: str,
         amount: Decimal,
-        author,
+        author: Author,
+        family_group_id: Optional[str] = None,
         note: str = "Перевод между счетами",
     ) -> Transaction:
-        """Удобный метод для перевода средств с карты на карту / снятия налички."""
-        from_acc = self.get_account(from_account_id)
+        from_acc = self.get_account(from_account_id, family_group_id)
+        self.get_account(to_account_id, family_group_id)
 
         tx = Transaction(
-            id="",  # Сгенерируется в роутере или репозитории
+            id=str(uuid.uuid4()),
             type=TransactionType.TRANSFER,
             category_id=None,
             amount=amount,
@@ -63,6 +71,7 @@ class AccountService:
             account_id=from_account_id,
             to_account_id=to_account_id,
             author=author,
+            family_group_id=family_group_id,
             note=note,
         )
         self.add_transaction(tx)
@@ -71,11 +80,7 @@ class AccountService:
     def _apply_balance_changes(
         self, tx: Transaction, rollback: bool = False
     ) -> None:
-        """
-        Внутренний механизм применения/отката баланса.
-        Если rollback=True, операция разворачивается в обратную сторону.
-        """
-        from_acc = self.get_account(tx.account_id)
+        from_acc = self.get_account(tx.account_id, tx.family_group_id)
         amount_in_from_cur = self._converter.convert(
             tx.amount, tx.currency, from_acc.currency
         )
@@ -99,7 +104,7 @@ class AccountService:
             self._account_repo.save(from_acc)
 
         elif tx.type == TransactionType.TRANSFER:
-            to_acc = self.get_account(tx.to_account_id)
+            to_acc = self.get_account(tx.to_account_id, tx.family_group_id)
             amount_in_to_cur = self._converter.convert(
                 tx.amount, tx.currency, to_acc.currency
             )
@@ -108,7 +113,6 @@ class AccountService:
                 from_acc.withdraw(amount_in_from_cur)
                 to_acc.deposit(amount_in_to_cur)
             else:
-                # Откат перевода
                 to_acc.withdraw(amount_in_to_cur)
                 from_acc.deposit(amount_in_from_cur)
 

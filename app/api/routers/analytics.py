@@ -1,9 +1,10 @@
 from decimal import Decimal
 from typing import Dict
 from fastapi import APIRouter, Depends, Query
-from app.api.dependencies import get_analytics_service
+from app.api.dependencies import get_analytics_service, get_current_user
 from app.api.schemas import MonthlyReportResponseSchema
 from app.domain.models import Currency
+from app.infrastructure.database import UserModel
 from app.services.analytics_service import AnalyticsService
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -14,9 +15,12 @@ def get_monthly_report(
     year: int = Query(...),
     month: int = Query(..., ge=1, le=12),
     currency: Currency = Query(default=Currency.RUB),
+    current_user: UserModel = Depends(get_current_user),
     svc: AnalyticsService = Depends(get_analytics_service),
 ):
-    report = svc.get_monthly_report(year, month, currency)
+    report = svc.get_monthly_report(
+        year, month, currency, current_user.family_group_id
+    )
     return MonthlyReportResponseSchema(
         year=report.year,
         month=report.month,
@@ -32,6 +36,9 @@ def get_expenses_by_recurrence(
     year: int = Query(...),
     month: int = Query(..., ge=1, le=12),
     currency: Currency = Query(default=Currency.RUB),
+    current_user: UserModel = Depends(get_current_user),
     svc: AnalyticsService = Depends(get_analytics_service),
 ):
-    return svc.get_expenses_by_recurrence(year, month, currency)
+    return svc.get_expenses_by_recurrence(
+        year, month, currency, current_user.family_group_id
+    )

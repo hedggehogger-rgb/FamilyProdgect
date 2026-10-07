@@ -1,6 +1,10 @@
 from typing import List
 from fastapi import APIRouter, Depends, Query, status
-from app.api.dependencies import get_account_service, get_currency_converter
+from app.api.dependencies import (
+    get_account_service,
+    get_currency_converter,
+    get_current_user,
+)
 from app.api.schemas import (
     PiggyBankCreateSchema,
     PiggyBankDepositSchema,
@@ -8,7 +12,8 @@ from app.api.schemas import (
     PiggyBankNoteResponseSchema,
     PiggyBankResponseSchema,
 )
-from app.domain.models import Currency
+from app.domain.models import Author
+from app.infrastructure.database import UserModel
 from app.services.account_service import AccountService
 from app.services.currency_service import CurrencyConverter
 from app.services.piggy_bank_service import PiggyBankService
@@ -30,6 +35,7 @@ def get_piggy_bank_service(
 )
 def create_piggy_bank(
     dto: PiggyBankCreateSchema,
+    current_user: UserModel = Depends(get_current_user),
     svc: PiggyBankService = Depends(get_piggy_bank_service),
 ):
     return svc.create_piggy_bank(
@@ -41,23 +47,33 @@ def create_piggy_bank(
         is_auto_replenish=dto.is_auto_replenish,
         auto_replenish_amount=dto.auto_replenish_amount,
         auto_replenish_day=dto.auto_replenish_day,
+        family_group_id=current_user.family_group_id,
     )
 
 
 @router.get("", response_model=List[PiggyBankResponseSchema])
 def get_all_piggy_banks(
+    current_user: UserModel = Depends(get_current_user),
     svc: PiggyBankService = Depends(get_piggy_bank_service),
 ):
-    return svc.get_all()
+    return svc.get_all(current_user.family_group_id)
 
 
 @router.post("/{piggy_bank_id}/deposit", response_model=PiggyBankResponseSchema)
 def deposit_to_piggy_bank(
     piggy_bank_id: str,
     dto: PiggyBankDepositSchema,
+    current_user: UserModel = Depends(get_current_user),
     svc: PiggyBankService = Depends(get_piggy_bank_service),
 ):
-    return svc.deposit(piggy_bank_id, dto.amount, dto.author, dto.note)
+    author = Author(current_user.role)
+    return svc.deposit(
+        piggy_bank_id,
+        dto.amount,
+        author,
+        dto.note,
+        current_user.family_group_id,
+    )
 
 
 @router.post(
@@ -66,9 +82,13 @@ def deposit_to_piggy_bank(
 def add_note_to_piggy_bank(
     piggy_bank_id: str,
     dto: PiggyBankNoteCreateSchema,
+    current_user: UserModel = Depends(get_current_user),
     svc: PiggyBankService = Depends(get_piggy_bank_service),
 ):
-    return svc.add_note(piggy_bank_id, dto.author, dto.text)
+    author = Author(current_user.role)
+    return svc.add_note(
+        piggy_bank_id, author, dto.text, current_user.family_group_id
+    )
 
 
 @router.get(
@@ -76,9 +96,10 @@ def add_note_to_piggy_bank(
 )
 def get_piggy_bank_notes(
     piggy_bank_id: str,
+    current_user: UserModel = Depends(get_current_user),
     svc: PiggyBankService = Depends(get_piggy_bank_service),
 ):
-    return svc.get_notes(piggy_bank_id)
+    return svc.get_notes(piggy_bank_id, current_user.family_group_id)
 
 
 @router.delete("/{piggy_bank_id}")
@@ -88,8 +109,11 @@ def delete_piggy_bank(
         default=True,
         description="Вернуть накопленные средства обратно на счёт",
     ),
+    current_user: UserModel = Depends(get_current_user),
     svc: PiggyBankService = Depends(get_piggy_bank_service),
 ):
     return svc.delete_piggy_bank(
-        piggy_bank_id, return_funds_to_account=return_funds
+        piggy_bank_id,
+        return_funds_to_account=return_funds,
+        family_group_id=current_user.family_group_id,
     )

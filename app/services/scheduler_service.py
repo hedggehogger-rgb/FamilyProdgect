@@ -1,17 +1,18 @@
 from datetime import datetime
 from decimal import Decimal
-import uuid
+import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
-from app.domain.models import Author, Currency, Transaction, TransactionType
+from app.domain.models import Author
 from app.infrastructure.database import (
     CategoryModel,
     PiggyBankModel,
     SessionLocal,
-    TransactionModel,
 )
 from app.services.account_service import AccountService
 from app.services.piggy_bank_service import PiggyBankService
+
+logger = logging.getLogger(__name__)
 
 
 class ScheduledTasksWorker:
@@ -24,14 +25,23 @@ class ScheduledTasksWorker:
         self._scheduler = BackgroundScheduler()
 
     def start(self):
-        """Запускает фонового демона проверки платежей раз в сутки в полночь."""
+        """Запуск фонового планировщика раз в сутки в полночь."""
         self._scheduler.add_job(
-            self.run_daily_tasks, "cron", hour=0, minute=1, id="daily_finance"
+            self.run_daily_tasks,
+            "cron",
+            hour=0,
+            minute=1,
+            id="daily_finance",
+            replace_existing=True,
         )
         self._scheduler.start()
 
+    def stop(self):
+        if self._scheduler.running:
+            self._scheduler.shutdown(wait=False)
+
     def run_daily_tasks(self):
-        """Основной цикл проверки регулярных категорий и копилок."""
+        """Основной цикл выполнения регулярных задач."""
         today = datetime.utcnow()
         current_day = today.day
 
@@ -53,16 +63,18 @@ class ScheduledTasksWorker:
                     self._piggy_svc.deposit(
                         piggy_bank_id=pb.id,
                         amount=Decimal(str(pb.auto_replenish_amount)),
-                        author=Author.HUSBAND,  # Системное автосписание
+                        author=Author.HUSBAND,
                         note_text=f"Регулярное автопополнение за {current_day} число",
                     )
-                except Exception as e:
-                    print(
-                        f"[Scheduler] Ошибка автопополнения копилки {pb.name}: {e}"
+                except Exception as exc:
+                    logger.error(
+                        "[Scheduler] Ошибка автопополнения копилки %s: %s",
+                        pb.name,
+                        exc,
                     )
 
-            # 2. Автоматическое создание регулярных транзакций по категориям (например, интернет 1-го числа)
-            auto_categories = (
+            # 2. Проверка наступления дат регулярных категорий
+            due_categories = (
                 db.query(CategoryModel)
                 .filter(
                     CategoryModel.frequency == "MONTHLY",
@@ -70,13 +82,11 @@ class ScheduledTasksWorker:
                 )
                 .all()
             )
-
-            accounts = self._account_svc._account_repo.find_all()
-            if accounts:
-                main_acc = accounts[0]
-                for cat in auto_categories:
-                    # Создаем запись, чтобы пользователь мог её отредактировать или удалить
-                    pass
-
+            for cat in due_categories:
+                logger.info(
+                    "[Scheduler] Регулярный платёж для категории '%s' наступил сегодня (%d число)",
+                    cat.name,
+                    current_day,
+                )
         finally:
             db.close()

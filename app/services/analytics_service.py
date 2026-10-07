@@ -1,9 +1,9 @@
 from collections import defaultdict
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Dict, List, Optional
+from decimal import Decimal
+from typing import Dict, Optional
 from app.domain.interfaces import ICategoryRepository, ITransactionRepository
-from app.domain.models import CategoryGroup, Currency, RecurrenceFrequency, Transaction
+from app.domain.models import CategoryGroup, Currency
 from app.services.currency_service import CurrencyConverter
 
 
@@ -30,14 +30,22 @@ class AnalyticsService:
         self._converter = converter
 
     def get_monthly_report(
-        self, year: int, month: int, target_currency: Currency
+        self,
+        year: int,
+        month: int,
+        target_currency: Currency,
+        family_group_id: Optional[str] = None,
     ) -> MonthlyReport:
-        txs = self._tx_repo.get_by_period(year, month)
+        txs = self._tx_repo.get_by_period(year, month, family_group_id)
         income = Decimal("0.00")
         expense = Decimal("0.00")
 
         for tx in txs:
-            cat = self._cat_repo.get_by_id(tx.category_id)
+            cat = (
+                self._cat_repo.get_by_id(tx.category_id, family_group_id)
+                if tx.category_id
+                else None
+            )
             val = self._converter.convert(
                 tx.amount, tx.currency, target_currency
             )
@@ -56,13 +64,21 @@ class AnalyticsService:
         )
 
     def get_expenses_by_recurrence(
-        self, year: int, month: int, target_currency: Currency
+        self,
+        year: int,
+        month: int,
+        target_currency: Currency,
+        family_group_id: Optional[str] = None,
     ) -> Dict[str, Decimal]:
-        txs = self._tx_repo.get_by_period(year, month)
+        txs = self._tx_repo.get_by_period(year, month, family_group_id)
         result = defaultdict(lambda: Decimal("0.00"))
 
         for tx in txs:
-            cat = self._cat_repo.get_by_id(tx.category_id)
+            cat = (
+                self._cat_repo.get_by_id(tx.category_id, family_group_id)
+                if tx.category_id
+                else None
+            )
             if cat and cat.group == CategoryGroup.EXPENSE:
                 freq = cat.frequency.value
                 val = self._converter.convert(

@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
-from typing import List, Optional
+from typing import Optional
 from app.domain.interfaces import ICategoryRepository, ITransactionRepository
-from app.domain.models import Category, CategoryPeriodicity, Currency
+from app.domain.models import Category, Currency
 from app.services.currency_service import CurrencyConverter
 
 
@@ -36,19 +36,19 @@ class BudgetService:
         category_id: str,
         target_currency: Currency = Currency.RUB,
         months_back: int = 3,
+        family_group_id: Optional[str] = None,
     ) -> CategoryBudgetForecast:
-        category: Optional[Category] = self._cat_repo.get_by_id(category_id)
+        category: Optional[Category] = self._cat_repo.get_by_id(
+            category_id, family_group_id
+        )
         if not category:
             raise KeyError(f"Категория с id '{category_id}' не найдена")
 
         now = datetime.utcnow()
-
-        # 1. Вычисляем следующий месяц для проверки активности
         next_month = now.month + 1 if now.month < 12 else 1
         next_year = now.year if now.month < 12 else now.year + 1
         is_active_next = category.is_active_at(next_year, next_month)
 
-        # 2. Если категория временная и её срок истекает, прогнозировать траты на будущее не нужно
         if not is_active_next:
             return CategoryBudgetForecast(
                 category_id=category.id,
@@ -61,10 +61,8 @@ class BudgetService:
                 explanation=f"Срок действия временной категории '{category.name}' истекает. В следующем месяце трат не ожидается.",
             )
 
-        # 3. Собираем историю за предыдущие месяцы
         total_spent = Decimal("0.00")
         actual_active_months_count = 0
-
         current_year = now.year
         current_month = now.month
 
@@ -75,11 +73,10 @@ class BudgetService:
                 target_m += 12
                 target_y -= 1
 
-            # Учитываем месяц, только если категория уже существовала в тот момент!
             if category.is_active_at(target_y, target_m):
-                txs = self._tx_repo.get_by_period(target_y, target_m)
-
-                # Считаем траты по этой категории с конвертацией в нужную валюту
+                txs = self._tx_repo.get_by_period(
+                    target_y, target_m, family_group_id
+                )
                 month_cat_sum = Decimal("0.00")
                 for tx in txs:
                     if tx.category_id == category_id:
@@ -91,7 +88,6 @@ class BudgetService:
                 total_spent += month_cat_sum
                 actual_active_months_count += 1
 
-        # 4. Расчет среднего арифметического
         if actual_active_months_count > 0:
             avg = (total_spent / Decimal(actual_active_months_count)).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
@@ -104,9 +100,7 @@ class BudgetService:
         else:
             avg = Decimal("0.00")
             prediction = Decimal("0.00")
-            explanation = (
-                "Категория новая, данных за предыдущие месяцы еще нет."
-            )
+            explanation = "Категория новая, данных за предыдущие месяцы еще нет."
 
         return CategoryBudgetForecast(
             category_id=category.id,

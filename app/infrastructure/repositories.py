@@ -1,6 +1,6 @@
-from datetime import datetime
+from contextlib import contextmanager
 from decimal import Decimal
-from typing import List, Optional
+from typing import Generator, List, Optional, Tuple
 from sqlalchemy import extract
 from sqlalchemy.orm import Session
 from app.domain.interfaces import (
@@ -27,13 +27,31 @@ from app.infrastructure.database import (
 )
 
 
-class PostgresAccountRepository(IAccountRepository):
+class BasePostgresRepository:
+    """Базовый класс: поддерживает как переданную сессию, так и работу через SessionLocal."""
+
+    def __init__(self, db: Optional[Session] = None):
+        self._db = db
+
+    @contextmanager
+    def _get_db(self) -> Generator[Session, None, None]:
+        if self._db is not None:
+            yield self._db
+        else:
+            session: Session = SessionLocal()
+            try:
+                yield session
+            finally:
+                session.close()
+
+
+class PostgresAccountRepository(BasePostgresRepository, IAccountRepository):
 
     def save(self, account: Account) -> None:
-        db: Session = SessionLocal()
-        try:
+        with self._get_db() as db:
             model = AccountModel(
                 id=account.id,
+                family_group_id=account.family_group_id,
                 name=account.name,
                 currency=account.currency.value,
                 balance=account.balance,
@@ -41,41 +59,34 @@ class PostgresAccountRepository(IAccountRepository):
             )
             db.merge(model)
             db.commit()
-        finally:
-            db.close()
 
-    def find_by_id(self, account_id: str) -> Optional[Account]:
-        db: Session = SessionLocal()
-        try:
-            row = (
-                db.query(AccountModel)
-                .filter(AccountModel.id == account_id)
-                .first()
-            )
+    def find_by_id(
+        self, account_id: str, family_group_id: Optional[str] = None
+    ) -> Optional[Account]:
+        with self._get_db() as db:
+            q = db.query(AccountModel).filter(AccountModel.id == account_id)
+            if family_group_id:
+                q = q.filter(AccountModel.family_group_id == family_group_id)
+            row = q.first()
             return self._to_domain(row) if row else None
-        finally:
-            db.close()
 
-    def find_all(self) -> List[Account]:
-        db: Session = SessionLocal()
-        try:
-            rows = db.query(AccountModel).all()
-            return [self._to_domain(r) for r in rows]
-        finally:
-            db.close()
+    def find_all(self, family_group_id: Optional[str] = None) -> List[Account]:
+        with self._get_db() as db:
+            q = db.query(AccountModel)
+            if family_group_id:
+                q = q.filter(AccountModel.family_group_id == family_group_id)
+            return [self._to_domain(r) for r in q.all()]
 
-    def delete(self, account_id: str) -> bool:
-        db: Session = SessionLocal()
-        try:
-            deleted = (
-                db.query(AccountModel)
-                .filter(AccountModel.id == account_id)
-                .delete()
-            )
+    def delete(
+        self, account_id: str, family_group_id: Optional[str] = None
+    ) -> bool:
+        with self._get_db() as db:
+            q = db.query(AccountModel).filter(AccountModel.id == account_id)
+            if family_group_id:
+                q = q.filter(AccountModel.family_group_id == family_group_id)
+            deleted = q.delete()
             db.commit()
             return deleted > 0
-        finally:
-            db.close()
 
     @staticmethod
     def _to_domain(row: AccountModel) -> Account:
@@ -85,19 +96,20 @@ class PostgresAccountRepository(IAccountRepository):
             currency=Currency(row.currency),
             balance=Decimal(str(row.balance)),
             is_investment=row.is_investment,
+            family_group_id=row.family_group_id,
         )
 
 
-class PostgresCategoryRepository(ICategoryRepository):
+class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
 
     def add(self, category: Category) -> None:
         self.update(category)
 
     def update(self, category: Category) -> None:
-        db: Session = SessionLocal()
-        try:
+        with self._get_db() as db:
             model = CategoryModel(
                 id=category.id,
+                family_group_id=category.family_group_id,
                 name=category.name,
                 group=category.group.value,
                 periodicity=category.periodicity.value,
@@ -108,41 +120,34 @@ class PostgresCategoryRepository(ICategoryRepository):
             )
             db.merge(model)
             db.commit()
-        finally:
-            db.close()
 
-    def get_by_id(self, category_id: str) -> Optional[Category]:
-        db: Session = SessionLocal()
-        try:
-            row = (
-                db.query(CategoryModel)
-                .filter(CategoryModel.id == category_id)
-                .first()
-            )
+    def get_by_id(
+        self, category_id: str, family_group_id: Optional[str] = None
+    ) -> Optional[Category]:
+        with self._get_db() as db:
+            q = db.query(CategoryModel).filter(CategoryModel.id == category_id)
+            if family_group_id:
+                q = q.filter(CategoryModel.family_group_id == family_group_id)
+            row = q.first()
             return self._to_domain(row) if row else None
-        finally:
-            db.close()
 
-    def get_all(self) -> List[Category]:
-        db: Session = SessionLocal()
-        try:
-            rows = db.query(CategoryModel).all()
-            return [self._to_domain(r) for r in rows]
-        finally:
-            db.close()
+    def get_all(self, family_group_id: Optional[str] = None) -> List[Category]:
+        with self._get_db() as db:
+            q = db.query(CategoryModel)
+            if family_group_id:
+                q = q.filter(CategoryModel.family_group_id == family_group_id)
+            return [self._to_domain(r) for r in q.all()]
 
-    def delete(self, category_id: str) -> bool:
-        db: Session = SessionLocal()
-        try:
-            deleted = (
-                db.query(CategoryModel)
-                .filter(CategoryModel.id == category_id)
-                .delete()
-            )
+    def delete(
+        self, category_id: str, family_group_id: Optional[str] = None
+    ) -> bool:
+        with self._get_db() as db:
+            q = db.query(CategoryModel).filter(CategoryModel.id == category_id)
+            if family_group_id:
+                q = q.filter(CategoryModel.family_group_id == family_group_id)
+            deleted = q.delete()
             db.commit()
             return deleted > 0
-        finally:
-            db.close()
 
     @staticmethod
     def _to_domain(row: CategoryModel) -> Category:
@@ -154,17 +159,20 @@ class PostgresCategoryRepository(ICategoryRepository):
             months_duration=row.months_duration,
             frequency=RecurrenceFrequency(row.frequency),
             day_of_month=row.day_of_month,
+            family_group_id=row.family_group_id,
             created_at=row.created_at,
         )
 
 
-class PostgresTransactionRepository(ITransactionRepository):
+class PostgresTransactionRepository(
+    BasePostgresRepository, ITransactionRepository
+):
 
     def save(self, transaction: Transaction) -> None:
-        db: Session = SessionLocal()
-        try:
+        with self._get_db() as db:
             model = TransactionModel(
                 id=transaction.id,
+                family_group_id=transaction.family_group_id,
                 type=transaction.type.value,
                 category_id=transaction.category_id,
                 amount=transaction.amount,
@@ -177,56 +185,87 @@ class PostgresTransactionRepository(ITransactionRepository):
             )
             db.merge(model)
             db.commit()
-        finally:
-            db.close()
 
-    def get_by_id(self, transaction_id: str) -> Optional[Transaction]:
-        db: Session = SessionLocal()
-        try:
-            row = (
-                db.query(TransactionModel)
-                .filter(TransactionModel.id == transaction_id)
-                .first()
+    def get_by_id(
+        self, transaction_id: str, family_group_id: Optional[str] = None
+    ) -> Optional[Transaction]:
+        with self._get_db() as db:
+            q = db.query(TransactionModel).filter(
+                TransactionModel.id == transaction_id
             )
-            return self._to_domain(row) if row else None
-        finally:
-            db.close()
-
-    def get_all(self) -> List[Transaction]:
-        db: Session = SessionLocal()
-        try:
-            rows = db.query(TransactionModel).all()
-            return [self._to_domain(r) for r in rows]
-        finally:
-            db.close()
-
-    def get_by_period(self, year: int, month: int) -> List[Transaction]:
-        db: Session = SessionLocal()
-        try:
-            rows = (
-                db.query(TransactionModel)
-                .filter(
-                    extract("year", TransactionModel.date) == year,
-                    extract("month", TransactionModel.date) == month,
+            if family_group_id:
+                q = q.filter(
+                    TransactionModel.family_group_id == family_group_id
                 )
+            row = q.first()
+            return self._to_domain(row) if row else None
+
+    def get_all(
+        self, family_group_id: Optional[str] = None
+    ) -> List[Transaction]:
+        with self._get_db() as db:
+            q = db.query(TransactionModel)
+            if family_group_id:
+                q = q.filter(
+                    TransactionModel.family_group_id == family_group_id
+                )
+            rows = q.order_by(TransactionModel.date.desc()).all()
+            return [self._to_domain(r) for r in rows]
+
+    def get_paginated(
+        self,
+        family_group_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        account_id: Optional[str] = None,
+        category_id: Optional[str] = None,
+    ) -> Tuple[List[Transaction], int]:
+        with self._get_db() as db:
+            q = db.query(TransactionModel).filter(
+                TransactionModel.family_group_id == family_group_id
+            )
+            if account_id:
+                q = q.filter(TransactionModel.account_id == account_id)
+            if category_id:
+                q = q.filter(TransactionModel.category_id == category_id)
+
+            total = q.count()
+            rows = (
+                q.order_by(TransactionModel.date.desc())
+                .offset(offset)
+                .limit(limit)
                 .all()
             )
-            return [self._to_domain(r) for r in rows]
-        finally:
-            db.close()
+            return [self._to_domain(r) for r in rows], total
 
-    def delete(self, transaction_id: str) -> bool:
-        db: Session = SessionLocal()
-        try:
-            deleted = (
-                db.query(TransactionModel)
-                .filter(TransactionModel.id == transaction_id)
-                .delete()
+    def get_by_period(
+        self, year: int, month: int, family_group_id: Optional[str] = None
+    ) -> List[Transaction]:
+        with self._get_db() as db:
+            q = db.query(TransactionModel).filter(
+                extract("year", TransactionModel.date) == year,
+                extract("month", TransactionModel.date) == month,
             )
+            if family_group_id:
+                q = q.filter(
+                    TransactionModel.family_group_id == family_group_id
+                )
+            return [self._to_domain(r) for r in q.all()]
+
+    def delete(
+        self, transaction_id: str, family_group_id: Optional[str] = None
+    ) -> bool:
+        with self._get_db() as db:
+            q = db.query(TransactionModel).filter(
+                TransactionModel.id == transaction_id
+            )
+            if family_group_id:
+                q = q.filter(
+                    TransactionModel.family_group_id == family_group_id
+                )
+            deleted = q.delete()
             db.commit()
             return deleted > 0
-        finally:
-            db.close()
 
     @staticmethod
     def _to_domain(row: TransactionModel) -> Transaction:
@@ -240,5 +279,6 @@ class PostgresTransactionRepository(ITransactionRepository):
             to_account_id=row.to_account_id,
             author=Author(row.author),
             note=row.note,
+            family_group_id=row.family_group_id,
             date=row.date,
         )

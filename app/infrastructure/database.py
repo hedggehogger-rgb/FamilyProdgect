@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Generator
 from sqlalchemy import (
     Boolean,
     Column,
@@ -9,9 +10,8 @@ from sqlalchemy import (
     String,
     Text,
     create_engine,
-    extract,
 )
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from app.core.config import settings
 
 engine = create_engine(settings.DB_URL, pool_pre_ping=True)
@@ -20,7 +20,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-# --- НОВЫЕ ТАБЛИЦЫ: СЕМЬЯ И ПОЛЬЗОВАТЕЛИ ---
+def get_db() -> Generator[Session, None, None]:
+    """Генератор сессии для Dependency Injection FastAPI."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class FamilyGroupModel(Base):
@@ -39,24 +45,25 @@ class UserModel(Base):
         String(50),
         ForeignKey("family_groups.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     email = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(
-        String(20), nullable=False
-    )  # HUSBAND, WIFE или другое отображаемое имя
+    role = Column(String(20), nullable=False)
     name = Column(String(100), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-
-# --- СУЩЕСТВУЮЩИЕ ТАБЛИЦЫ ---
 
 
 class AccountModel(Base):
     __tablename__ = "accounts"
 
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(String(50), nullable=True)  # Привязка к семье
+    family_group_id = Column(
+        String(50),
+        ForeignKey("family_groups.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     name = Column(String(100), nullable=False)
     currency = Column(String(10), nullable=False)
     balance = Column(Numeric(19, 2), nullable=False, default=0.0)
@@ -67,7 +74,12 @@ class CategoryModel(Base):
     __tablename__ = "categories"
 
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(String(50), nullable=True)  # Привязка к семье
+    family_group_id = Column(
+        String(50),
+        ForeignKey("family_groups.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     name = Column(String(100), nullable=False)
     group = Column(String(30), nullable=False)
     periodicity = Column(String(30), nullable=False)
@@ -81,6 +93,12 @@ class TransactionModel(Base):
     __tablename__ = "transactions"
 
     id = Column(String(50), primary_key=True, index=True)
+    family_group_id = Column(
+        String(50),
+        ForeignKey("family_groups.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     category_id = Column(String(50), nullable=True)
     type = Column(String(30), nullable=False)
     amount = Column(Numeric(19, 2), nullable=False)
@@ -96,6 +114,12 @@ class CategoryLimitModel(Base):
     __tablename__ = "category_limits"
 
     id = Column(String(50), primary_key=True, index=True)
+    family_group_id = Column(
+        String(50),
+        ForeignKey("family_groups.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     category_id = Column(String(50), nullable=False, index=True)
     limit_amount = Column(Numeric(19, 2), nullable=False)
     currency = Column(String(10), nullable=False)
@@ -108,6 +132,12 @@ class PiggyBankModel(Base):
     __tablename__ = "piggy_banks"
 
     id = Column(String(50), primary_key=True, index=True)
+    family_group_id = Column(
+        String(50),
+        ForeignKey("family_groups.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     name = Column(String(100), nullable=False)
     target_amount = Column(Numeric(19, 2), nullable=False)
     current_amount = Column(Numeric(19, 2), default=0.0, nullable=False)

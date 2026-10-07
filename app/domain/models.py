@@ -28,16 +28,16 @@ class CategoryGroup(str, Enum):
 
 
 class CategoryPeriodicity(str, Enum):
-    INFINITE = "INFINITE"  # Бессрочно
-    LIMITED = "LIMITED"  # На сколько-то месяцев
+    INFINITE = "INFINITE"
+    LIMITED = "LIMITED"
 
 
 class RecurrenceFrequency(str, Enum):
-    NONE = "NONE"  # Нерегулярный
-    WEEKLY = "WEEKLY"  # Раз в неделю
-    MONTHLY = "MONTHLY"  # Раз в месяц
-    QUARTERLY = "QUARTERLY"  # Раз в квартал (3 мес)
-    ANNUALLY = "ANNUALLY"  # Раз в год (12 мес)
+    NONE = "NONE"
+    WEEKLY = "WEEKLY"
+    MONTHLY = "MONTHLY"
+    QUARTERLY = "QUARTERLY"
+    ANNUALLY = "ANNUALLY"
 
 
 class TransactionType(str, Enum):
@@ -45,22 +45,21 @@ class TransactionType(str, Enum):
     EXPENSE_PLANNED = "EXPENSE_PLANNED"
     EXPENSE_IMPULSE = "EXPENSE_IMPULSE"
     INVESTMENT = "INVESTMENT"
-    TRANSFER = "TRANSFER"  # <-- Перевод между счетами
+    TRANSFER = "TRANSFER"
 
 
 @dataclass
 class Transaction:
     id: str
     type: TransactionType
-    category_id: Optional[str]  # Для перевода категория не обязательна
+    category_id: Optional[str]
     amount: Decimal
     currency: Currency
     account_id: str
     author: Author
-    note: str
-    to_account_id: Optional[str] = (
-        None  # Целевой счет при типе TRANSFER
-    )
+    note: str = ""
+    to_account_id: Optional[str] = None
+    family_group_id: Optional[str] = None
     date: datetime = field(default_factory=datetime.utcnow)
 
     def __post_init__(self):
@@ -73,6 +72,7 @@ class Transaction:
         if self.type == TransactionType.TRANSFER and self.account_id == self.to_account_id:
             raise ValueError("Нельзя перевести деньги на тот же самый счёт")
 
+
 @dataclass
 class Category:
     id: str
@@ -82,10 +82,10 @@ class Category:
     months_duration: int = 0
     frequency: RecurrenceFrequency = RecurrenceFrequency.NONE
     day_of_month: Optional[int] = None
+    family_group_id: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
 
     def __post_init__(self):
-        # 1. Валидация дня месяца для регулярных ежемесячных категорий
         if (
             self.frequency == RecurrenceFrequency.MONTHLY
             and self.day_of_month is not None
@@ -93,17 +93,15 @@ class Category:
             if not (1 <= self.day_of_month <= 31):
                 raise ValueError("День месяца должен быть в диапазоне от 1 до 31")
 
-        # 2. Правило минимум 2 циклов повторений для ограниченных категорий
         if (
             self.periodicity == CategoryPeriodicity.LIMITED
             and self.frequency != RecurrenceFrequency.NONE
         ):
-            # Минимально необходимое число месяцев для покрытия 2 циклов:
             min_months_required = {
-                RecurrenceFrequency.WEEKLY: 1,  # 2 недели укладываются в 1 месяц
-                RecurrenceFrequency.MONTHLY: 2,  # 2 месяца
-                RecurrenceFrequency.QUARTERLY: 6,  # 2 квартала = 6 месяцев
-                RecurrenceFrequency.ANNUALLY: 24,  # 2 года = 24 месяца
+                RecurrenceFrequency.WEEKLY: 1,
+                RecurrenceFrequency.MONTHLY: 2,
+                RecurrenceFrequency.QUARTERLY: 6,
+                RecurrenceFrequency.ANNUALLY: 24,
             }.get(self.frequency, 0)
 
             if self.months_duration < min_months_required:
@@ -113,15 +111,12 @@ class Category:
                 )
 
     def is_active_at(self, year: int, month: int) -> bool:
-        """Проверяет, действует ли категория в указанный месяц и год."""
         if self.periodicity == CategoryPeriodicity.INFINITE:
             return True
 
-        # Считаем разницу в месяцах с момента создания
         start_year = self.created_at.year
         start_month = self.created_at.month
         months_passed = (year - start_year) * 12 + (month - start_month)
-
         return 0 <= months_passed < self.months_duration
 
 
@@ -132,6 +127,7 @@ class Account:
     currency: Currency = Currency.RUB
     balance: Decimal = Decimal("0.00")
     is_investment: bool = False
+    family_group_id: Optional[str] = None
 
     def can_withdraw(self, amount: Decimal) -> bool:
         return self.balance >= amount
@@ -149,20 +145,3 @@ class Account:
                 f"Недостаточно средств на счете {self.name} (Баланс: {self.balance} {self.currency.symbol})"
             )
         self.balance -= amount
-
-
-@dataclass
-class Transaction:
-    id: str
-    type: TransactionType
-    category_id: str
-    amount: Decimal
-    currency: Currency
-    account_id: str
-    author: Author
-    note: str
-    date: datetime = field(default_factory=datetime.utcnow)
-
-    def __post_init__(self):
-        if self.amount <= Decimal("0"):
-            raise ValueError("Сумма транзакции должна быть строго больше 0")
