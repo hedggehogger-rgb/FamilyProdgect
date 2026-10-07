@@ -1,19 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 import uvicorn
 from app.api.routers import accounts, analytics, categories, transactions
 from app.core.config import settings
 from app.infrastructure.database import init_db
 
-# 1. Сначала создаем экземпляр приложения
 app = FastAPI(
     title="Family Finance Backend",
     description="REST API для кроссплатформенного семейного бюджета (Web, Tablet, Mobile)",
     version="1.0.0",
 )
 
-# 2. Настраиваем CORS для Vue.js
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,14 +22,33 @@ app.add_middleware(
 
 init_db()
 
-# 3. И только ТЕПЕРЬ подключаем все роутеры к созданному app
+# --- ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ ОШИБОК ---
+
+
+# Перехватывает бизнес-ошибки домена (например, "Недостаточно средств", "Счёт уже существует")
+@app.exception_handler(ValueError)
+def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
+    )
+
+
+# Перехватывает ошибки отсутствия сущностей ("Счет не найден")
+@app.exception_handler(KeyError)
+def key_error_handler(request: Request, exc: KeyError):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": str(exc).strip("'")},
+    )
+
+
+# Подключение роутеров
 app.include_router(accounts.router)
 app.include_router(categories.router)
 app.include_router(transactions.router)
 app.include_router(analytics.router)
 
 
-# 4. Перенаправление на Swagger при клике из консоли
 @app.get("/", include_in_schema=False)
 def root():
     return RedirectResponse(url="/docs")
@@ -42,7 +59,6 @@ def health_check():
     return {"status": "ok", "env": settings.APP_ENV}
 
 
-# 5. Точка запуска сервера
 if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
