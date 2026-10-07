@@ -4,10 +4,44 @@ from app.infrastructure.repositories import (
     PostgresCategoryRepository,
     PostgresTransactionRepository,
 )
+
 from app.services.account_service import AccountService
 from app.services.analytics_service import AnalyticsService
 from app.services.budget_service import BudgetService
 from app.services.currency_service import CurrencyConverter
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from app.infrastructure.database import SessionLocal, UserModel
+from app.services.auth_service import AuthService
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> UserModel:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Неверный или просроченный токен авторизации",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    payload = AuthService.decode_token(token)
+    if not payload:
+        raise credentials_exception
+
+    user_id: str = payload.get("sub")
+    if not user_id:
+        raise credentials_exception
+
+    db: Session = SessionLocal()
+    try:
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not user:
+            raise credentials_exception
+        return user
+    finally:
+        db.close()
+
 
 # 1. Провайдеры и конвертер
 rate_provider = ApiExchangeRateProvider()
