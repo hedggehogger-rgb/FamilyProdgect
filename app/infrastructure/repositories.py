@@ -28,8 +28,6 @@ from app.infrastructure.database import (
 
 
 class BasePostgresRepository:
-    """Базовый класс: поддерживает как переданную сессию, так и работу через SessionLocal."""
-
     def __init__(self, db: Optional[Session] = None):
         self._db = db
 
@@ -116,6 +114,7 @@ class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
                 months_duration=category.months_duration,
                 frequency=category.frequency.value,
                 day_of_month=category.day_of_month,
+                color=category.color,
                 created_at=category.created_at,
             )
             db.merge(model)
@@ -159,6 +158,7 @@ class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
             months_duration=row.months_duration,
             frequency=RecurrenceFrequency(row.frequency),
             day_of_month=row.day_of_month,
+            color=getattr(row, "color", "#8b5cf6") or "#8b5cf6",
             family_group_id=row.family_group_id,
             created_at=row.created_at,
         )

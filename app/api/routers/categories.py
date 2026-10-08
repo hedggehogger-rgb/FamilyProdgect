@@ -34,6 +34,7 @@ def create_category(
         months_duration=dto.months_duration,
         frequency=dto.frequency,
         day_of_month=dto.day_of_month,
+        color=dto.color or "#8b5cf6",
         created_at=datetime.utcnow(),
     )
     cat_repo.add(category)
@@ -71,6 +72,8 @@ def update_category(
         cat.name = dto.name
     if dto.day_of_month is not None:
         cat.day_of_month = dto.day_of_month
+    if dto.color is not None:
+        cat.color = dto.color
 
     cat_repo.update(cat)
     return cat

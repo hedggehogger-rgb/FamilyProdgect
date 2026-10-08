@@ -1,52 +1,86 @@
 <template>
-  <div class="flex h-screen bg-slate-100">
-    <!-- Боковая панель для ПК -->
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shadow-xl">
+  <div class="flex h-screen overflow-hidden bg-theme-light-bg dark:bg-theme-dark-bg text-theme-light-text dark:text-theme-dark-text">
+    <!-- Боковое меню -->
+    <aside class="w-64 bg-theme-light-surface dark:bg-theme-dark-surface border-r border-theme-light-border dark:border-theme-dark-border flex flex-col justify-between shadow-lg z-20">
       <div>
-        <div class="h-16 flex items-center px-6 bg-slate-950 font-bold text-lg text-white tracking-wide border-b border-slate-800">
-          💰 Family Finance
+        <!-- Логотип -->
+        <div class="h-16 flex items-center gap-3 px-6 border-b border-theme-light-border dark:border-theme-dark-border">
+          <div class="w-9 h-9 rounded-xl bg-theme-accent-primary flex items-center justify-center text-white shadow-md shadow-purple-500/30">
+            <WalletCards class="w-5 h-5 text-white" />
+          </div>
+          <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-purple-600 to-indigo-500 dark:from-purple-400 dark:to-indigo-300 bg-clip-text text-transparent">
+            Family Finance
+          </span>
         </div>
-        <nav class="mt-6 px-3 space-y-1">
+
+        <!-- Навигация -->
+        <nav class="mt-6 px-3 space-y-1.5">
           <RouterLink
             v-for="item in navItems"
             :key="item.path"
             :to="item.path"
-            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition"
-            :class="[$route.path === item.path ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 hover:text-white']"
+            class="flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all duration-150"
+            :class="[
+              $route.path === item.path
+                ? 'bg-theme-accent-primary text-white shadow-md shadow-purple-500/25'
+                : 'text-theme-light-muted dark:text-theme-dark-muted hover:bg-theme-light-hover dark:hover:bg-theme-dark-hover hover:text-purple-600 dark:hover:text-purple-300'
+            ]"
           >
-            <span>{{ item.icon }}</span>
+            <component :is="item.icon" class="w-5 h-5 stroke-[2.2]" />
             <span>{{ item.label }}</span>
           </RouterLink>
         </nav>
       </div>
 
-      <!-- Пользователь внизу панели -->
-      <div class="p-4 border-t border-slate-800 bg-slate-950/50 flex items-center justify-between">
-        <div class="overflow-hidden">
-          <p class="text-sm font-semibold text-white truncate">{{ auth.user?.name }}</p>
-          <p class="text-xs text-slate-400 capitalize">{{ auth.user?.role }}</p>
+      <!-- Пользователь внизу -->
+      <div class="p-4 border-t border-theme-light-border dark:border-theme-dark-border bg-purple-50/50 dark:bg-theme-dark-card/40 flex items-center justify-between">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <div class="w-9 h-9 rounded-full bg-purple-200 dark:bg-purple-900/60 flex items-center justify-center text-purple-700 dark:text-purple-300 font-bold text-sm">
+            {{ auth.user?.name ? auth.user.name.charAt(0).toUpperCase() : 'U' }}
+          </div>
+          <div class="overflow-hidden">
+            <p class="text-sm font-bold truncate">{{ auth.user?.name }}</p>
+            <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">
+              {{ auth.user?.role === 'HUSBAND' ? 'Муж' : 'Жена' }}
+            </p>
+          </div>
         </div>
-        <button @click="handleLogout" title="Выйти" class="text-slate-400 hover:text-rose-400 transition text-sm">
-          🚪
+        <button
+          @click="handleLogout"
+          title="Выйти"
+          class="p-2 text-theme-light-muted dark:text-theme-dark-muted hover:text-red-500 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition"
+        >
+          <LogOut class="w-5 h-5" />
         </button>
       </div>
     </aside>
 
     <!-- Основной контент -->
     <div class="flex-1 flex flex-col overflow-hidden">
-      <!-- Верхняя шапка -->
-      <header class="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shadow-sm">
-        <h1 class="text-xl font-bold text-slate-800">{{ pageTitle }}</h1>
+      <!-- Шапка -->
+      <header class="h-16 bg-theme-light-surface dark:bg-theme-dark-surface border-b border-theme-light-border dark:border-theme-dark-border px-8 flex items-center justify-between z-10">
+        <h1 class="text-xl font-black tracking-tight text-slate-800 dark:text-purple-100">{{ pageTitle }}</h1>
+
         <div class="flex items-center gap-4">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+          <!-- Переключатель темы (быстрый) -->
+          <button
+            @click="settings.toggleTheme()"
+            class="p-2 rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-theme-light-hover dark:hover:bg-theme-dark-hover transition text-purple-600 dark:text-purple-300"
+            title="Переключить тему"
+          >
+            <Sun v-if="settings.isDark" class="w-5 h-5" />
+            <Moon v-else class="w-5 h-5" />
+          </button>
+
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
             Семья: {{ auth.user?.family_group_id }}
           </span>
         </div>
       </header>
 
-      <!-- Контейнер страниц -->
-      <main class="flex-1 overflow-y-auto p-8">
-        <div class="max-w-7xl mx-auto">
+      <!-- Страницы -->
+      <main class="flex-1 overflow-y-auto p-8 bg-theme-light-bg dark:bg-theme-dark-bg">
+        <div class="max-w-7xl mx-auto pb-12">
           <RouterView />
         </div>
       </main>
@@ -55,25 +89,44 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useSettingsStore } from '@/stores/settings';
+import {
+  LayoutDashboard,
+  CreditCard,
+  CalendarDays,
+  Tags,
+  PiggyBank,
+  Settings,
+  LogOut,
+  Sun,
+  Moon,
+  WalletCards
+} from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const settings = useSettingsStore();
+
+onMounted(() => {
+  settings.initTheme();
+});
 
 const navItems = [
-  { label: 'Главная и счета', path: '/', icon: '💳' },
-  { label: 'Операции', path: '/transactions', icon: '📝' },
-  { label: 'Категории и лимиты', path: '/categories', icon: '🏷️' },
-  { label: 'Копилки', path: '/piggy-banks', icon: '🐖' },
-  { label: 'Аналитика', path: '/analytics', icon: '📊' },
+  { label: 'Главная', path: '/', icon: LayoutDashboard },
+  { label: 'Счета', path: '/accounts', icon: CreditCard },
+  { label: 'Журнал операций', path: '/transactions', icon: CalendarDays },
+  { label: 'Категории и лимиты', path: '/categories', icon: Tags },
+  { label: 'Копилки', path: '/piggy-banks', icon: PiggyBank },
+  { label: 'Настройки', path: '/settings', icon: Settings },
 ];
 
 const pageTitle = computed(() => {
   const current = navItems.find((i) => i.path === route.path);
-  return current ? current.label : 'Финансы';
+  return current ? current.label : 'Семейный бюджет';
 });
 
 function handleLogout() {

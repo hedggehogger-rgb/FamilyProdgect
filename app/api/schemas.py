@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Generic, List, Optional, TypeVar
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 from app.domain.models import (
     Author,
     CategoryGroup,
@@ -12,6 +12,7 @@ from app.domain.models import (
 )
 
 T = TypeVar("T")
+
 
 class PaginatedResponse(BaseModel, Generic[T]):
     items: List[T]
@@ -25,25 +26,25 @@ class ActionStatusResponse(BaseModel):
     message: str
     id: Optional[str] = None
 
+
 class FamilyRegisterSchema(BaseModel):
-    family_name: str = Field(..., min_length=2, description="Название семьи")
-    first_user_name: str = Field(..., min_length=2, description="Имя пользователя")
+    family_name: str = Field(..., min_length=2)
+    first_user_name: str = Field(..., min_length=2)
     first_user_email: str = Field(...)
     first_user_password: str = Field(..., min_length=6)
     first_user_role: Author = Author.HUSBAND
 
 
 class UserJoinFamilySchema(BaseModel):
-    family_group_id: str = Field(..., description="ID существующей семьи")
-    name: str = Field(..., min_length=2, description="Имя пользователя")
-    email: str = Field(...)
+    family_group_id: str
+    name: str = Field(..., min_length=2)
+    email: str
     password: str = Field(..., min_length=6)
     role: Author = Author.WIFE
 
 
-class LoginSchema(BaseModel):
-    email: str
-    password: str
+class UserProfileUpdateSchema(BaseModel):
+    name: str = Field(..., min_length=2)
 
 
 class TokenResponseSchema(BaseModel):
@@ -63,7 +64,7 @@ class UserResponseSchema(BaseModel):
 
 
 class AccountCreateSchema(BaseModel):
-    id: str = Field(..., min_length=1)
+    id: Optional[str] = None
     name: str = Field(..., min_length=1, max_length=100)
     currency: Currency = Currency.RUB
     balance: Decimal = Field(default=Decimal("0.00"), ge=0)
@@ -86,41 +87,13 @@ class CategoryCreateSchema(BaseModel):
     months_duration: int = 0
     frequency: RecurrenceFrequency = RecurrenceFrequency.NONE
     day_of_month: Optional[int] = None
-
-    @model_validator(mode="after")
-    def validate_category(self):
-        if self.frequency == RecurrenceFrequency.NONE:
-            self.day_of_month = None
-
-        if (
-            self.periodicity == CategoryPeriodicity.LIMITED
-            and self.frequency != RecurrenceFrequency.NONE
-        ):
-            min_cycles = {
-                RecurrenceFrequency.WEEKLY: 1,
-                RecurrenceFrequency.MONTHLY: 2,
-                RecurrenceFrequency.QUARTERLY: 6,
-                RecurrenceFrequency.ANNUALLY: 24,
-            }.get(self.frequency, 0)
-            if self.months_duration < min_cycles:
-                raise ValueError(
-                    f"Срок ограниченной регулярной категории должен покрывать минимум 2 цикла ({min_cycles} мес.)"
-                )
-
-        if (
-            self.periodicity == CategoryPeriodicity.LIMITED
-            and self.months_duration <= 0
-        ):
-            raise ValueError(
-                "Для ограниченной категории months_duration должен быть > 0"
-            )
-
-        return self
+    color: str = "#8b5cf6"
 
 
 class CategoryUpdateSchema(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    day_of_month: Optional[int] = Field(None, ge=1, le=31)
+    name: Optional[str] = None
+    day_of_month: Optional[int] = None
+    color: Optional[str] = None
 
 
 class CategoryResponseSchema(BaseModel):
@@ -131,6 +104,7 @@ class CategoryResponseSchema(BaseModel):
     months_duration: int
     frequency: RecurrenceFrequency
     day_of_month: Optional[int]
+    color: str
     created_at: datetime
 
 
@@ -139,7 +113,7 @@ class TransactionCreateSchema(BaseModel):
     type: TransactionType
     category_id: Optional[str] = None
     amount: Decimal = Field(..., gt=0)
-    currency: Currency
+    currency: Currency = Currency.RUB
     account_id: str = Field(..., min_length=1)
     to_account_id: Optional[str] = None
     author: Optional[Author] = None

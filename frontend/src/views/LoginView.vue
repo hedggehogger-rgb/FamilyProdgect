@@ -18,8 +18,8 @@
           <div>
             <label class="block text-xs font-medium text-slate-700">Роль</label>
             <select v-model="form.role" class="mt-1 w-full border rounded-lg p-2.5 text-sm">
-              <option value="HUSBAND">Муж (HUSBAND)</option>
-              <option value="WIFE">Жена (WIFE)</option>
+              <option value="HUSBAND">Любими Муж (HUSBAND)</option>
+              <option value="WIFE">КошкоЖена (WIFE)</option>
             </select>
           </div>
         </template>

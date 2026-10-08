@@ -20,6 +20,10 @@ class Author(str, Enum):
     HUSBAND = "HUSBAND"
     WIFE = "WIFE"
 
+    @property
+    def ru_label(self) -> str:
+        return "Любими Муж" if self == Author.HUSBAND else "КошкоЖена"
+
 
 class CategoryGroup(str, Enum):
     INCOME = "INCOME"
@@ -34,6 +38,7 @@ class CategoryPeriodicity(str, Enum):
 
 class RecurrenceFrequency(str, Enum):
     NONE = "NONE"
+    DAILY = "DAILY"
     WEEKLY = "WEEKLY"
     MONTHLY = "MONTHLY"
     QUARTERLY = "QUARTERLY"
@@ -42,6 +47,8 @@ class RecurrenceFrequency(str, Enum):
 
 class TransactionType(str, Enum):
     INCOME = "INCOME"
+    INCOME_PLANNED = "INCOME_PLANNED"
+    INCOME_UNPLANNED = "INCOME_UNPLANNED"
     EXPENSE_PLANNED = "EXPENSE_PLANNED"
     EXPENSE_IMPULSE = "EXPENSE_IMPULSE"
     INVESTMENT = "INVESTMENT"
@@ -66,9 +73,7 @@ class Transaction:
         if self.amount <= Decimal("0"):
             raise ValueError("Сумма транзакции должна быть строго больше 0")
         if self.type == TransactionType.TRANSFER and not self.to_account_id:
-            raise ValueError(
-                "Для перевода необходимо указать целевой счёт (to_account_id)"
-            )
+            raise ValueError("Для перевода необходимо указать целевой счёт")
         if self.type == TransactionType.TRANSFER and self.account_id == self.to_account_id:
             raise ValueError("Нельзя перевести деньги на тот же самый счёт")
 
@@ -78,42 +83,17 @@ class Category:
     id: str
     name: str
     group: CategoryGroup
-    periodicity: CategoryPeriodicity
+    periodicity: CategoryPeriodicity = CategoryPeriodicity.INFINITE
     months_duration: int = 0
     frequency: RecurrenceFrequency = RecurrenceFrequency.NONE
     day_of_month: Optional[int] = None
+    color: str = "#8b5cf6"
     family_group_id: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
-
-    def __post_init__(self):
-        if (
-            self.frequency == RecurrenceFrequency.MONTHLY
-            and self.day_of_month is not None
-        ):
-            if not (1 <= self.day_of_month <= 31):
-                raise ValueError("День месяца должен быть в диапазоне от 1 до 31")
-
-        if (
-            self.periodicity == CategoryPeriodicity.LIMITED
-            and self.frequency != RecurrenceFrequency.NONE
-        ):
-            min_months_required = {
-                RecurrenceFrequency.WEEKLY: 1,
-                RecurrenceFrequency.MONTHLY: 2,
-                RecurrenceFrequency.QUARTERLY: 6,
-                RecurrenceFrequency.ANNUALLY: 24,
-            }.get(self.frequency, 0)
-
-            if self.months_duration < min_months_required:
-                raise ValueError(
-                    f"Срок действия категории с частотой '{self.frequency.value}' "
-                    f"должен покрывать минимум 2 цикла (требуется от {min_months_required} мес., указано: {self.months_duration})"
-                )
 
     def is_active_at(self, year: int, month: int) -> bool:
         if self.periodicity == CategoryPeriodicity.INFINITE:
             return True
-
         start_year = self.created_at.year
         start_month = self.created_at.month
         months_passed = (year - start_year) * 12 + (month - start_month)
@@ -141,7 +121,5 @@ class Account:
         if amount <= Decimal("0"):
             raise ValueError("Сумма списания должна быть больше 0")
         if not self.can_withdraw(amount):
-            raise ValueError(
-                f"Недостаточно средств на счете {self.name} (Баланс: {self.balance} {self.currency.symbol})"
-            )
+            raise ValueError(f"Недостаточно средств на счете {self.name}")
         self.balance -= amount

@@ -85,7 +85,11 @@ class AccountService:
             tx.amount, tx.currency, from_acc.currency
         )
 
-        if tx.type == TransactionType.INCOME:
+        if tx.type in (
+            TransactionType.INCOME,
+            TransactionType.INCOME_PLANNED,
+            TransactionType.INCOME_UNPLANNED,
+        ):
             if not rollback:
                 from_acc.deposit(amount_in_from_cur)
             else:

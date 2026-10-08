@@ -1,137 +1,157 @@
 <template>
-  <div class="space-y-6">
-    <!-- Блок со счетами и кнопкой добавления счёта -->
-    <div class="flex justify-between items-center">
-      <h2 class="text-lg font-bold text-slate-800">Банковские и наличные счета</h2>
-      <button @click="showAddAccount = true" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded-lg font-medium transition shadow-sm">
-        + Добавить счёт
-      </button>
-    </div>
+  <div class="space-y-8">
+    <!-- Сводка текущего месяца -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-theme-light-card dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border p-6 rounded-2xl shadow-sm">
+        <span class="text-xs font-bold uppercase tracking-wider text-theme-light-muted dark:text-theme-dark-muted">
+          Доходы в этом месяце
+        </span>
+        <p class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-2 font-mono">
+          +{{ formatMoney(monthlyStats.income) }} {{ currentSymbol }}
+        </p>
+      </div>
 
-    <!-- Сетка карточек счетов -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-      <div
-        v-for="acc in accounts"
-        :key="acc.id"
-        class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm relative overflow-hidden"
-      >
-        <div class="flex justify-between items-start">
-          <div>
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Счёт</span>
-            <h3 class="text-lg font-bold text-slate-800">{{ acc.name }}</h3>
-          </div>
-          <span :class="acc.is_investment ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'" class="text-xs px-2 py-0.5 rounded font-mono">
-            {{ acc.currency }}
-          </span>
-        </div>
-        <div class="mt-4">
-          <p class="text-2xl font-black text-slate-900 tracking-tight">
-            {{ formatMoney(acc.balance) }} <span class="text-base font-normal text-slate-500">{{ getSymbol(acc.currency) }}</span>
-          </p>
-          <span v-if="acc.is_investment" class="text-xs text-amber-600 font-medium">Инвестиционный</span>
-        </div>
+      <div class="bg-theme-light-card dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border p-6 rounded-2xl shadow-sm">
+        <span class="text-xs font-bold uppercase tracking-wider text-theme-light-muted dark:text-theme-dark-muted">
+          Расходы в этом месяце
+        </span>
+        <p class="text-3xl font-black text-rose-600 dark:text-rose-400 mt-2 font-mono">
+          -{{ formatMoney(monthlyStats.expense) }} {{ currentSymbol }}
+        </p>
+      </div>
+
+      <div class="bg-theme-light-card dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border p-6 rounded-2xl shadow-sm">
+        <span class="text-xs font-bold uppercase tracking-wider text-theme-light-muted dark:text-theme-dark-muted">
+          Итог месяца
+        </span>
+        <p
+          class="text-3xl font-black mt-2 font-mono"
+          :class="monthlyStats.savings >= 0 ? 'text-purple-600 dark:text-purple-300' : 'text-rose-500'"
+        >
+          {{ formatMoney(monthlyStats.savings) }} {{ currentSymbol }}
+        </p>
       </div>
     </div>
 
-    <!-- Блок быстрого внесения операции -->
-    <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm mt-8">
-      <h3 class="text-base font-bold text-slate-800 mb-4">Быстрая запись расхода / дохода</h3>
-      <form @submit.prevent="submitTransaction" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div>
-          <label class="block text-xs font-medium text-slate-600">Тип</label>
-          <select v-model="txForm.type" class="mt-1 w-full border rounded-lg p-2 text-sm">
-            <option value="EXPENSE_PLANNED">Расход (плановый)</option>
-            <option value="EXPENSE_IMPULSE">Расход (импульсивный)</option>
-            <option value="INCOME">Доход</option>
+    <!-- Форма быстрой записи расхода / дохода -->
+    <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl p-6 shadow-sm">
+      <h3 class="text-lg font-black text-slate-800 dark:text-purple-100 mb-6 flex items-center gap-2">
+        <PlusCircle class="w-5 h-5 text-theme-accent-primary" />
+        Быстрая запись операции
+      </h3>
+
+      <form @submit.prevent="submitTransaction" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <!-- 1. Тип операции -->
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">
+            Тип операции
+          </label>
+          <select
+            v-model="txForm.type"
+            @change="handleTypeChange"
+            class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-purple-500 outline-none"
+          >
+            <option value="EXPENSE_PLANNED">Плановый расход</option>
+            <option value="EXPENSE_IMPULSE">Внеплановый расход</option>
+            <option value="INCOME_PLANNED">Плановый доход</option>
+            <option value="INCOME_UNPLANNED">Внеплановый доход</option>
             <option value="INVESTMENT">Инвестиция</option>
           </select>
         </div>
 
+        <!-- 2. Счёт списания / пополнения -->
         <div>
-          <label class="block text-xs font-medium text-slate-600">Счёт списания</label>
-          <select v-model="txForm.account_id" required class="mt-1 w-full border rounded-lg p-2 text-sm">
+          <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">
+            Счёт
+          </label>
+          <select
+            v-model="txForm.account_id"
+            required
+            class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-purple-500 outline-none"
+          >
             <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
               {{ acc.name }} ({{ acc.currency }})
             </option>
           </select>
         </div>
 
+        <!-- 3. Категория -->
         <div>
-          <label class="block text-xs font-medium text-slate-600">Категория</label>
-          <select v-model="txForm.category_id" class="mt-1 w-full border rounded-lg p-2 text-sm">
+          <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">
+            Категория
+          </label>
+          <select
+            v-model="txForm.category_id"
+            class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-purple-500 outline-none"
+          >
             <option :value="null">Без категории</option>
-            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-              {{ cat.name }} ({{ cat.group }})
+            <option v-for="cat in filteredCategories" :key="cat.id" :value="cat.id">
+              {{ cat.name }}
             </option>
           </select>
         </div>
 
+        <!-- 4. Сумма и валюта -->
         <div>
-          <label class="block text-xs font-medium text-slate-600">Сумма</label>
-          <input v-model.number="txForm.amount" type="number" step="0.01" min="0.01" required placeholder="0.00" class="mt-1 w-full border rounded-lg p-2 text-sm font-mono" />
+          <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">
+            Сумма
+          </label>
+          <div class="flex gap-1.5">
+            <input
+              v-model.number="txForm.amount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              placeholder="0.00"
+              class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-bold font-mono focus:ring-2 focus:ring-purple-500 outline-none"
+            />
+            <select
+              v-model="txForm.currency"
+              class="bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2 text-xs font-bold font-mono"
+            >
+              <option value="RUB">RUB</option>
+              <option value="USD">USD</option>
+              <option value="AMD">AMD</option>
+            </select>
+          </div>
         </div>
 
+        <!-- Кнопка записи -->
         <div class="flex items-end">
-          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg text-sm transition">
+          <button
+            type="submit"
+            :disabled="loading"
+            class="w-full bg-theme-accent-primary hover:bg-theme-accent-hover text-white font-bold py-2.5 rounded-xl text-sm transition shadow-md shadow-purple-500/20 active:scale-95 disabled:opacity-50"
+          >
             Записать
           </button>
         </div>
       </form>
     </div>
-
-    <!-- Модалка добавления счёта -->
-    <div v-if="showAddAccount" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-        <h3 class="text-base font-bold text-slate-800 mb-4">Новый счёт</h3>
-        <form @submit.prevent="createAccount" class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-600">ID счёта (латиница)</label>
-            <input v-model="accForm.id" required placeholder="tinkoff-black" class="mt-1 w-full border rounded-lg p-2 text-sm font-mono" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600">Название</label>
-            <input v-model="accForm.name" required placeholder="Т-Банк Основной" class="mt-1 w-full border rounded-lg p-2 text-sm" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600">Валюта</label>
-            <select v-model="accForm.currency" class="mt-1 w-full border rounded-lg p-2 text-sm">
-              <option value="RUB">RUB (₽)</option>
-              <option value="USD">USD ($)</option>
-              <option value="AMD">AMD (֏)</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600">Стартовый баланс</label>
-            <input v-model.number="accForm.balance" type="number" step="0.01" class="mt-1 w-full border rounded-lg p-2 text-sm" />
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" v-model="accForm.is_investment" id="inv" />
-            <label for="inv" class="text-xs text-slate-700">Инвестиционный счёт</label>
-          </div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showAddAccount = false" class="px-4 py-2 text-xs border rounded-lg">Отмена</button>
-            <button type="submit" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded-lg">Создать</button>
-          </div>
-        </form>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { PlusCircle } from 'lucide-vue-next';
 import api from '@/api';
+import { useSettingsStore } from '@/stores/settings';
 
+const settings = useSettingsStore();
 const accounts = ref([]);
 const categories = ref([]);
-const showAddAccount = ref(false);
+const loading = ref(false);
 
-const accForm = reactive({
-  id: '',
-  name: '',
-  currency: 'RUB',
-  balance: 0,
-  is_investment: false
+const monthlyStats = reactive({
+  income: 0,
+  expense: 0,
+  savings: 0,
+});
+
+const currentSymbol = computed(() => {
+  const map = { RUB: '₽', USD: '$', AMD: '֏' };
+  return map[settings.baseCurrency] || '₽';
 });
 
 const txForm = reactive({
@@ -139,16 +159,25 @@ const txForm = reactive({
   account_id: '',
   category_id: null,
   amount: null,
-  currency: 'RUB',
+  currency: settings.baseCurrency,
+});
+
+const filteredCategories = computed(() => {
+  const isIncome = txForm.type.startsWith('INCOME');
+  const isInvest = txForm.type === 'INVESTMENT';
+  return categories.value.filter(c => {
+    if (isIncome) return c.group === 'INCOME';
+    if (isInvest) return c.group === 'INVESTMENT';
+    return c.group === 'EXPENSE';
+  });
 });
 
 function formatMoney(val) {
-  return Number(val).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+  return Number(val || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
 }
 
-function getSymbol(cur) {
-  const map = { RUB: '₽', USD: '$', AMD: '֏' };
-  return map[cur] || cur;
+function handleTypeChange() {
+  txForm.category_id = null;
 }
 
 async function loadData() {
@@ -158,29 +187,44 @@ async function loadData() {
   ]);
   accounts.value = accRes.data;
   categories.value = catRes.data;
+
   if (accounts.value.length && !txForm.account_id) {
     txForm.account_id = accounts.value[0].id;
-    txForm.currency = accounts.value[0].currency;
+  }
+
+  const now = new Date();
+  try {
+    const { data: rep } = await api.get(`/analytics/monthly-report?year=${now.getFullYear()}&month=${now.getMonth() + 1}&currency=${settings.baseCurrency}`);
+    monthlyStats.income = rep.total_income;
+    monthlyStats.expense = rep.total_expense;
+    monthlyStats.savings = rep.net_savings;
+  } catch (e) {
+    console.error(e);
   }
 }
 
-async function createAccount() {
-  await api.post('/accounts', accForm);
-  showAddAccount.value = false;
-  accForm.id = '';
-  accForm.name = '';
-  accForm.balance = 0;
-  await loadData();
-}
-
 async function submitTransaction() {
-  const acc = accounts.value.find(a => a.id === txForm.account_id);
-  await api.post('/transactions', {
-    ...txForm,
-    currency: acc?.currency || 'RUB'
-  });
-  txForm.amount = null;
-  await loadData();
+  if (!txForm.account_id) {
+    alert('Сначала добавьте хотя бы один счёт во вкладке "Счета"');
+    return;
+  }
+  loading.value = true;
+  try {
+    await api.post('/transactions', {
+      type: txForm.type,
+      account_id: txForm.account_id,
+      category_id: txForm.category_id || null,
+      amount: txForm.amount,
+      currency: txForm.currency,
+      note: 'Быстрая запись'
+    });
+    txForm.amount = null;
+    await loadData();
+  } catch (err) {
+    alert(err.response?.data?.detail || 'Ошибка сохранения транзакции');
+  } finally {
+    loading.value = false;
+  }
 }
 
 onMounted(loadData);

@@ -74,18 +74,14 @@ class CategoryModel(Base):
     __tablename__ = "categories"
 
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(
-        String(50),
-        ForeignKey("family_groups.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    family_group_id = Column(String(50), ForeignKey("family_groups.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     group = Column(String(30), nullable=False)
     periodicity = Column(String(30), nullable=False)
     months_duration = Column(Integer, default=0, nullable=False)
     frequency = Column(String(30), default="NONE", nullable=False)
     day_of_month = Column(Integer, nullable=True)
+    color = Column(String(30), default="#8b5cf6", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 

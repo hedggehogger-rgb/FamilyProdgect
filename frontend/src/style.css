@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased font-sans;
+@layer base {
+  body {
+    @apply bg-theme-light-bg text-theme-light-text dark:bg-theme-dark-bg dark:text-theme-dark-text font-sans antialiased transition-colors duration-200;
+  }
+}
+
+/* Стилизация скроллбара под пурпурную тему */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-purple-300 dark:bg-purple-900/60 rounded-full hover:bg-purple-400 dark:hover:bg-purple-700;
 }

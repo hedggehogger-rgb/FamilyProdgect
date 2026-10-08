@@ -133,3 +133,23 @@ def get_current_user_profile(
         role=Author(current_user.role),
         family_group_id=current_user.family_group_id,
     )
+
+from app.api.schemas import UserProfileUpdateSchema
+
+@router.put("/me", response_model=UserResponseSchema)
+def update_profile(
+    dto: UserProfileUpdateSchema,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    user = db.query(UserModel).filter(UserModel.id == current_user.id).first()
+    user.name = dto.name
+    db.commit()
+    db.refresh(user)
+    return UserResponseSchema(
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        role=Author(user.role),
+        family_group_id=user.family_group_id,
+    )

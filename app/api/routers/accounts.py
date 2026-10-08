@@ -1,4 +1,5 @@
 from typing import List
+import uuid
 from fastapi import APIRouter, Depends, status
 from app.api.dependencies import get_account_service, get_current_user
 from app.api.schemas import AccountCreateSchema, AccountResponseSchema
@@ -16,7 +17,7 @@ def create_account(
     svc: AccountService = Depends(get_account_service),
 ):
     acc = Account(
-        id=dto.id,
+        id=dto.id or f"acc-{uuid.uuid4().hex[:8]}",
         name=dto.name,
         currency=dto.currency,
         balance=dto.balance,

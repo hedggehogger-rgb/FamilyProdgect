@@ -21,6 +21,11 @@ const router = createRouter({
           component: () => import('@/views/DashboardView.vue')
         },
         {
+          path: 'accounts',
+          name: 'Accounts',
+          component: () => import('@/views/AccountsView.vue')
+        },
+        {
           path: 'transactions',
           name: 'Transactions',
           component: () => import('@/views/TransactionsView.vue')
@@ -36,9 +41,9 @@ const router = createRouter({
           component: () => import('@/views/PiggyBanksView.vue')
         },
         {
-          path: 'analytics',
-          name: 'Analytics',
-          component: () => import('@/views/AnalyticsView.vue')
+          path: 'settings',
+          name: 'Settings',
+          component: () => import('@/views/SettingsView.vue')
         }
       ]
     }
