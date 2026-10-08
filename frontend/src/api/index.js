@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '', // Проксируется через Vite
+  baseURL: '/api', // Все запросы пойдут через единую точку проксирования
   timeout: 10000,
 });
 
