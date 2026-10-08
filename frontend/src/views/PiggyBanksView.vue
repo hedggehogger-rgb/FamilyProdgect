@@ -1,67 +1,80 @@
 <template>
   <div class="space-y-6">
     <div class="flex justify-between items-center">
-      <h2 class="text-lg font-bold text-slate-800">Семейные копилки</h2>
-      <button @click="showModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded-lg font-medium transition shadow-sm">
-        + Создать копилку
+      <div>
+        <h2 class="text-xl font-black text-slate-800 dark:text-purple-100">Семейные копилки</h2>
+        <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mt-1">Накопления на совместные цели</p>
+      </div>
+      <button
+        @click="showModal = true"
+        class="bg-theme-accent-primary hover:bg-theme-accent-hover text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-md shadow-purple-500/20 flex items-center gap-2"
+      >
+        <Plus class="w-4 h-4" />
+        Создать копилку
       </button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div v-for="pb in piggyBanks" :key="pb.id" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+      <div
+        v-for="pb in piggyBanks"
+        :key="pb.id"
+        class="bg-theme-light-card dark:bg-theme-dark-card p-6 rounded-2xl border border-theme-light-border dark:border-theme-dark-border shadow-sm space-y-4"
+      >
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="font-bold text-slate-800 text-lg">{{ pb.name }}</h3>
-            <span class="text-xs text-slate-400 font-mono">Привязана к: {{ pb.account_id }}</span>
+            <h3 class="font-black text-slate-800 dark:text-purple-100 text-lg">{{ pb.name }}</h3>
+            <span class="text-xs text-theme-light-muted dark:text-theme-dark-muted font-mono">Привязана к: {{ pb.account_id }}</span>
           </div>
-          <span :class="pb.is_completed ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'" class="text-xs px-2.5 py-1 rounded-full font-semibold">
+          <span :class="pb.is_completed ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200'" class="text-xs px-3 py-1 rounded-full font-bold">
             {{ pb.is_completed ? 'Цель достигнута 🎉' : 'Копим' }}
           </span>
         </div>
 
         <div>
           <div class="flex justify-between text-sm mb-1.5 font-mono">
-            <span class="font-bold text-slate-800">{{ pb.current_amount }} {{ pb.currency }}</span>
-            <span class="text-slate-400">из {{ pb.target_amount }} {{ pb.currency }}</span>
+            <span class="font-bold text-slate-800 dark:text-purple-100">{{ pb.current_amount }} {{ pb.currency }}</span>
+            <span class="text-theme-light-muted dark:text-theme-dark-muted">из {{ pb.target_amount }} {{ pb.currency }}</span>
           </div>
-          <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+          <div class="w-full bg-slate-200 dark:bg-purple-950 h-2.5 rounded-full overflow-hidden">
             <div class="bg-emerald-500 h-full transition-all duration-500" :style="{ width: getPercent(pb) + '%' }"></div>
           </div>
         </div>
 
         <div class="flex items-center justify-between pt-2">
-          <button @click="openDeposit(pb)" class="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold px-3 py-1.5 rounded-lg transition">
+          <button @click="openDeposit(pb)" class="text-xs bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 hover:bg-purple-200 font-bold px-3 py-2 rounded-xl transition">
             Пополнить
           </button>
-          <button @click="deletePiggy(pb.id)" class="text-xs text-rose-500 hover:text-rose-700">
+          <button @click="deletePiggy(pb.id)" class="text-xs text-rose-500 hover:text-rose-700 font-bold">
             Разбить / Удалить
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Модалка создания -->
-    <div v-if="showModal" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-        <h3 class="text-base font-bold text-slate-800 mb-4">Новая копилка</h3>
+    <!-- Модалка создания копилки -->
+    <div v-if="showModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Новая копилка</h3>
         <form @submit.prevent="createPiggy" class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-slate-600">Название цели</label>
-            <input v-model="createForm.name" required placeholder="На отпуск в горах" class="mt-1 w-full border rounded-lg p-2 text-sm" />
+            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">Название цели</label>
+            <input v-model="createForm.name" required placeholder="На отпуск в горах" class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none text-slate-800 dark:text-purple-100" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-600">Целевая сумма</label>
-            <input v-model.number="createForm.target_amount" type="number" step="100" min="1" required class="mt-1 w-full border rounded-lg p-2 text-sm" />
+            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">Целевая сумма</label>
+            <input v-model.number="createForm.target_amount" type="number" step="any" min="1" required class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none text-slate-800 dark:text-purple-100 font-mono font-bold" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-600">Счёт для списания</label>
-            <select v-model="createForm.account_id" required class="mt-1 w-full border rounded-lg p-2 text-sm">
-              <option v-for="acc in accounts" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-            </select>
+            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">Счёт для списания</label>
+            <CustomSelect
+              v-model="createForm.account_id"
+              :options="accountOptions"
+              placeholder="Выберите счёт"
+            />
           </div>
           <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showModal = false" class="px-4 py-2 text-xs border rounded-lg">Отмена</button>
-            <button type="submit" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded-lg">Создать</button>
+            <button type="button" @click="showModal = false" class="px-4 py-2 text-xs font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition">Отмена</button>
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary hover:bg-theme-accent-hover text-white rounded-xl shadow-md transition">Создать</button>
           </div>
         </form>
       </div>
@@ -70,8 +83,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { Plus } from 'lucide-vue-next';
 import api from '@/api';
+import CustomSelect from '@/components/CustomSelect.vue';
 
 const piggyBanks = ref([]);
 const accounts = ref([]);
@@ -82,6 +97,13 @@ const createForm = reactive({
   target_amount: 10000,
   account_id: '',
   currency: 'RUB'
+});
+
+const accountOptions = computed(() => {
+  return accounts.value.map(a => ({
+    label: `${a.name} (${a.currency})`,
+    value: a.id
+  }));
 });
 
 function getPercent(pb) {
@@ -96,7 +118,9 @@ async function loadData() {
   ]);
   piggyBanks.value = pbRes.data;
   accounts.value = accRes.data;
-  if (accounts.value.length) createForm.account_id = accounts.value[0].id;
+  if (accounts.value.length && !createForm.account_id) {
+    createForm.account_id = accounts.value[0].id;
+  }
 }
 
 async function createPiggy() {

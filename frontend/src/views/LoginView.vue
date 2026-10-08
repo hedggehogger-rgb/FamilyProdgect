@@ -1,48 +1,83 @@
 <template>
-  <div class="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-      <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">
-        {{ isRegister ? 'Создание семейного бюджета' : 'Вход в аккаунт' }}
-      </h2>
+  <div class="min-h-screen bg-theme-dark-bg flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 border border-purple-100">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-black text-slate-900 tracking-tight">
+          {{ isRegister ? 'Создание семейного бюджета' : 'Вход в аккаунт' }}
+        </h2>
+        <p class="text-xs text-slate-500 mt-1">Семейный учет финансов и инвестиций</p>
+      </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <template v-if="isRegister">
           <div>
-            <label class="block text-xs font-medium text-slate-700">Название семьи</label>
-            <input v-model="form.familyName" required class="mt-1 w-full border rounded-lg p-2.5 text-sm" placeholder="Ивановы" />
+            <label class="block text-xs font-bold text-slate-700">Название семьи</label>
+            <input
+              v-model="form.familyName"
+              required
+              class="mt-1 w-full border border-slate-300 rounded-xl p-2.5 text-sm !text-black text-black bg-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Ивановы"
+            />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-700">Ваше имя</label>
-            <input v-model="form.name" required class="mt-1 w-full border rounded-lg p-2.5 text-sm" placeholder="Алексей" />
+            <label class="block text-xs font-bold text-slate-700">Ваше имя</label>
+            <input
+              v-model="form.name"
+              required
+              class="mt-1 w-full border border-slate-300 rounded-xl p-2.5 text-sm !text-black text-black bg-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Алексей"
+            />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-700">Роль</label>
-            <select v-model="form.role" class="mt-1 w-full border rounded-lg p-2.5 text-sm">
-              <option value="HUSBAND">Любими Муж (HUSBAND)</option>
-              <option value="WIFE">КошкоЖена (WIFE)</option>
-            </select>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Роль</label>
+            <CustomSelect
+              v-model="form.role"
+              :options="[
+                { label: 'Любими Муж', value: 'HUSBAND' },
+                { label: 'КошкоЖена', value: 'WIFE' }
+              ]"
+            />
           </div>
         </template>
 
         <div>
-          <label class="block text-xs font-medium text-slate-700">Email</label>
-          <input v-model="form.email" type="email" required class="mt-1 w-full border rounded-lg p-2.5 text-sm" placeholder="user@family.ru" />
+          <label class="block text-xs font-bold text-slate-700">Email</label>
+          <input
+            v-model="form.email"
+            type="email"
+            required
+            class="mt-1 w-full border border-slate-300 rounded-xl p-2.5 text-sm !text-black text-black bg-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500"
+            placeholder="user@family.ru"
+          />
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-700">Пароль</label>
-          <input v-model="form.password" type="password" required class="mt-1 w-full border rounded-lg p-2.5 text-sm" />
+          <label class="block text-xs font-bold text-slate-700">Пароль</label>
+          <input
+            v-model="form.password"
+            type="password"
+            required
+            class="mt-1 w-full border border-slate-300 rounded-xl p-2.5 text-sm !text-black text-black bg-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500"
+          />
         </div>
 
-        <p v-if="error" class="text-rose-500 text-xs">{{ error }}</p>
+        <div v-if="error" class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold">
+          {{ error }}
+        </div>
 
-        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-md">
+        <button
+          type="submit"
+          class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg shadow-purple-500/25 active:scale-98"
+        >
           {{ isRegister ? 'Зарегистрироваться' : 'Войти' }}
         </button>
       </form>
 
-      <div class="mt-4 text-center">
-        <button @click="isRegister = !isRegister" class="text-xs text-slate-500 hover:text-slate-800 underline">
+      <div class="mt-6 text-center">
+        <button
+          @click="isRegister = !isRegister"
+          class="text-xs font-semibold text-purple-600 hover:text-purple-800 transition underline underline-offset-4"
+        >
           {{ isRegister ? 'Уже есть семья? Войти' : 'Создать новую семью' }}
         </button>
       </div>
@@ -54,6 +89,7 @@
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import CustomSelect from '@/components/CustomSelect.vue';
 
 const router = useRouter();
 const auth = useAuthStore();

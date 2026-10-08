@@ -8,14 +8,34 @@
   }
 }
 
+/* Полное удаление системных стрелочек из input number во всех браузерах */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+/* Фикс цвета автозаполнения для входа в аккаунт (всегда четкий черный цвет) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #000000 !important;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Стилизация скроллбара под пурпурную тему */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-purple-300 dark:bg-purple-900/60 rounded-full hover:bg-purple-400 dark:hover:bg-purple-700;
+  @apply bg-purple-300/80 dark:bg-purple-900/60 rounded-full hover:bg-purple-400 dark:hover:bg-purple-700;
 }

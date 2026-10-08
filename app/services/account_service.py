@@ -50,6 +50,13 @@ class AccountService:
         self._apply_balance_changes(tx, rollback=True)
         self._tx_repo.delete(transaction_id, family_group_id)
 
+    def delete_account(
+            self, account_id: str, family_group_id: Optional[str] = None
+    ) -> bool:
+        acc = self.get_account(account_id, family_group_id)
+        return self._account_repo.delete(acc.id, family_group_id)
+
+
     def transfer_funds(
         self,
         from_account_id: str,

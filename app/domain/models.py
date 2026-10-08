@@ -87,6 +87,8 @@ class Category:
     months_duration: int = 0
     frequency: RecurrenceFrequency = RecurrenceFrequency.NONE
     day_of_month: Optional[int] = None
+    day_of_week: Optional[int] = None
+    recurrence_month: Optional[int] = None
     color: str = "#8b5cf6"
     family_group_id: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)

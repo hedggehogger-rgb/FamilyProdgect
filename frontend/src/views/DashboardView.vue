@@ -46,17 +46,11 @@
           <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">
             Тип операции
           </label>
-          <select
+          <CustomSelect
             v-model="txForm.type"
+            :options="typeOptions"
             @change="handleTypeChange"
-            class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-purple-500 outline-none"
-          >
-            <option value="EXPENSE_PLANNED">Плановый расход</option>
-            <option value="EXPENSE_IMPULSE">Внеплановый расход</option>
-            <option value="INCOME_PLANNED">Плановый доход</option>
-            <option value="INCOME_UNPLANNED">Внеплановый доход</option>
-            <option value="INVESTMENT">Инвестиция</option>
-          </select>
+          />
         </div>
 
         <!-- 2. Счёт списания / пополнения -->
@@ -64,15 +58,12 @@
           <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">
             Счёт
           </label>
-          <select
+          <CustomSelect
             v-model="txForm.account_id"
-            required
-            class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-purple-500 outline-none"
-          >
-            <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
-              {{ acc.name }} ({{ acc.currency }})
-            </option>
-          </select>
+            :options="accountOptions"
+            :placeholder="accounts.length ? 'Выберите счёт' : 'Нет счетов'"
+            :disabled="!accounts.length"
+          />
         </div>
 
         <!-- 3. Категория -->
@@ -80,15 +71,11 @@
           <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">
             Категория
           </label>
-          <select
+          <CustomSelect
             v-model="txForm.category_id"
-            class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-purple-500 outline-none"
-          >
-            <option :value="null">Без категории</option>
-            <option v-for="cat in filteredCategories" :key="cat.id" :value="cat.id">
-              {{ cat.name }}
-            </option>
-          </select>
+            :options="categoryOptions"
+            placeholder="Без категории"
+          />
         </div>
 
         <!-- 4. Сумма и валюта -->
@@ -100,20 +87,19 @@
             <input
               v-model.number="txForm.amount"
               type="number"
-              step="0.01"
+              step="any"
               min="0.01"
               required
               placeholder="0.00"
-              class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-bold font-mono focus:ring-2 focus:ring-purple-500 outline-none"
+              class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl px-3 py-2 text-sm font-bold font-mono focus:ring-2 focus:ring-purple-500 outline-none text-slate-800 dark:text-purple-100"
             />
-            <select
-              v-model="txForm.currency"
-              class="bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2 text-xs font-bold font-mono"
-            >
-              <option value="RUB">RUB</option>
-              <option value="USD">USD</option>
-              <option value="AMD">AMD</option>
-            </select>
+            <div class="w-24 shrink-0">
+              <CustomSelect
+                v-model="txForm.currency"
+                :options="currencyOptions"
+                size="md"
+              />
+            </div>
           </div>
         </div>
 
@@ -121,7 +107,7 @@
         <div class="flex items-end">
           <button
             type="submit"
-            :disabled="loading"
+            :disabled="loading || !txForm.account_id"
             class="w-full bg-theme-accent-primary hover:bg-theme-accent-hover text-white font-bold py-2.5 rounded-xl text-sm transition shadow-md shadow-purple-500/20 active:scale-95 disabled:opacity-50"
           >
             Записать
@@ -137,6 +123,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { PlusCircle } from 'lucide-vue-next';
 import api from '@/api';
 import { useSettingsStore } from '@/stores/settings';
+import CustomSelect from '@/components/CustomSelect.vue';
 
 const settings = useSettingsStore();
 const accounts = ref([]);
@@ -148,6 +135,20 @@ const monthlyStats = reactive({
   expense: 0,
   savings: 0,
 });
+
+const typeOptions = [
+  { label: 'Плановый расход', value: 'EXPENSE_PLANNED' },
+  { label: 'Внеплановый расход', value: 'EXPENSE_IMPULSE' },
+  { label: 'Плановый доход', value: 'INCOME_PLANNED' },
+  { label: 'Внеплановый доход', value: 'INCOME_UNPLANNED' },
+  { label: 'Инвестиция', value: 'INVESTMENT' }
+];
+
+const currencyOptions = [
+  { label: 'RUB', value: 'RUB' },
+  { label: 'USD', value: 'USD' },
+  { label: 'AMD', value: 'AMD' }
+];
 
 const currentSymbol = computed(() => {
   const map = { RUB: '₽', USD: '$', AMD: '֏' };
@@ -162,14 +163,26 @@ const txForm = reactive({
   currency: settings.baseCurrency,
 });
 
-const filteredCategories = computed(() => {
+const accountOptions = computed(() => {
+  return accounts.value.map(a => ({
+    label: `${a.name} (${a.currency})`,
+    value: a.id
+  }));
+});
+
+const categoryOptions = computed(() => {
   const isIncome = txForm.type.startsWith('INCOME');
   const isInvest = txForm.type === 'INVESTMENT';
-  return categories.value.filter(c => {
+  const list = categories.value.filter(c => {
     if (isIncome) return c.group === 'INCOME';
     if (isInvest) return c.group === 'INVESTMENT';
     return c.group === 'EXPENSE';
   });
+
+  return [
+    { label: 'Без категории', value: null },
+    ...list.map(c => ({ label: c.name, value: c.id }))
+  ];
 });
 
 function formatMoney(val) {
@@ -188,8 +201,12 @@ async function loadData() {
   accounts.value = accRes.data;
   categories.value = catRes.data;
 
-  if (accounts.value.length && !txForm.account_id) {
-    txForm.account_id = accounts.value[0].id;
+  if (accounts.value.length > 0) {
+    if (!txForm.account_id || !accounts.value.some(a => a.id === txForm.account_id)) {
+      txForm.account_id = accounts.value[0].id;
+    }
+  } else {
+    txForm.account_id = '';
   }
 
   const now = new Date();

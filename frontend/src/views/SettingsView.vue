@@ -11,15 +11,13 @@
           <p class="font-bold text-sm text-slate-800 dark:text-purple-100">Основная валюта</p>
           <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted">В этой валюте отображается баланс и общие отчеты</p>
         </div>
-        <select
-          v-model="settings.baseCurrency"
-          @change="settings.setBaseCurrency(settings.baseCurrency)"
-          class="bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-xs font-bold outline-none"
-        >
-          <option value="RUB">RUB (₽) — Российский рубль</option>
-          <option value="USD">USD ($) — Доллар США</option>
-          <option value="AMD">AMD (֏) — Армянский драм</option>
-        </select>
+        <div class="w-64">
+          <CustomSelect
+            v-model="settings.baseCurrency"
+            :options="currencyOptions"
+            @change="settings.setBaseCurrency"
+          />
+        </div>
       </div>
 
       <!-- 2. Смена темы -->
@@ -30,7 +28,7 @@
         </div>
         <button
           @click="settings.toggleTheme()"
-          class="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 px-4 py-2 rounded-xl text-xs font-bold transition"
+          class="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 px-4 py-2 rounded-xl text-xs font-bold transition hover:bg-purple-200"
         >
           <Sun v-if="settings.isDark" class="w-4 h-4" />
           <Moon v-else class="w-4 h-4" />
@@ -45,7 +43,7 @@
         <div class="flex gap-3">
           <input
             v-model="newName"
-            class="flex-1 bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none font-semibold"
+            class="flex-1 bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none font-semibold text-slate-800 dark:text-purple-100"
           />
           <button
             @click="saveName"
@@ -80,11 +78,18 @@ import { useRouter } from 'vue-router';
 import { Sun, Moon, LogOut } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
+import CustomSelect from '@/components/CustomSelect.vue';
 import api from '@/api';
 
 const auth = useAuthStore();
 const settings = useSettingsStore();
 const router = useRouter();
+
+const currencyOptions = [
+  { label: 'RUB (₽) — Российский рубль', value: 'RUB' },
+  { label: 'USD ($) — Доллар США', value: 'USD' },
+  { label: 'AMD (֏) — Армянский драм', value: 'AMD' }
+];
 
 const newName = ref(auth.user?.name || '');
 

@@ -10,6 +10,7 @@ from sqlalchemy import (
     String,
     Text,
     create_engine,
+    text,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from app.core.config import settings
@@ -21,7 +22,6 @@ Base = declarative_base()
 
 
 def get_db() -> Generator[Session, None, None]:
-    """Генератор сессии для Dependency Injection FastAPI."""
     db = SessionLocal()
     try:
         yield db
@@ -74,13 +74,20 @@ class CategoryModel(Base):
     __tablename__ = "categories"
 
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(String(50), ForeignKey("family_groups.id", ondelete="CASCADE"), nullable=False, index=True)
+    family_group_id = Column(
+        String(50),
+        ForeignKey("family_groups.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     name = Column(String(100), nullable=False)
     group = Column(String(30), nullable=False)
     periodicity = Column(String(30), nullable=False)
     months_duration = Column(Integer, default=0, nullable=False)
     frequency = Column(String(30), default="NONE", nullable=False)
     day_of_month = Column(Integer, nullable=True)
+    day_of_week = Column(Integer, nullable=True)
+    recurrence_month = Column(Integer, nullable=True)
     color = Column(String(30), default="#8b5cf6", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -163,3 +170,13 @@ class PiggyBankNoteModel(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
+        conn.execute(text("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
+        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
+        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS day_of_week INTEGER;"))
+        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS recurrence_month INTEGER;"))
+        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS color VARCHAR(30) DEFAULT '#8b5cf6';"))
+        conn.execute(text("ALTER TABLE category_limits ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
+        conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))

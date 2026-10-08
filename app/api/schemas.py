@@ -87,12 +87,16 @@ class CategoryCreateSchema(BaseModel):
     months_duration: int = 0
     frequency: RecurrenceFrequency = RecurrenceFrequency.NONE
     day_of_month: Optional[int] = None
+    day_of_week: Optional[int] = None
+    recurrence_month: Optional[int] = None
     color: str = "#8b5cf6"
 
 
 class CategoryUpdateSchema(BaseModel):
     name: Optional[str] = None
     day_of_month: Optional[int] = None
+    day_of_week: Optional[int] = None
+    recurrence_month: Optional[int] = None
     color: Optional[str] = None
 
 
@@ -104,6 +108,8 @@ class CategoryResponseSchema(BaseModel):
     months_duration: int
     frequency: RecurrenceFrequency
     day_of_month: Optional[int]
+    day_of_week: Optional[int]
+    recurrence_month: Optional[int]
     color: str
     created_at: datetime
 

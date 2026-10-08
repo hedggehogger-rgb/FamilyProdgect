@@ -33,8 +33,8 @@ def set_category_limit(
 @router.get("/status/{category_id}", response_model=LimitStatusResponseSchema)
 def get_limit_status(
     category_id: str,
-    year: int = Query(..., example=2026),
-    month: int = Query(..., ge=1, le=12, example=10),
+    year: int = Query(..., examples=[2026]),
+    month: int = Query(..., ge=1, le=12, examples=[10]),
     current_user: UserModel = Depends(get_current_user),
     svc: LimitService = Depends(get_limit_service),
 ):

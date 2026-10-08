@@ -1,4 +1,4 @@
-<template>
+         <template>
   <div class="space-y-6">
     <div class="flex justify-between items-center">
       <div>
@@ -39,11 +39,10 @@
             <h3 class="font-black text-base text-slate-800 dark:text-purple-100">{{ cat.name }}</h3>
           </div>
 
-          <p v-if="cat.day_of_month" class="text-xs text-theme-light-muted dark:text-theme-dark-muted mt-2">
-            День списания: {{ cat.day_of_month }}-е число
+          <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mt-2">
+            {{ formatSchedule(cat) }}
           </p>
 
-          <!-- Блок лимита -->
           <div v-if="limitsMap[cat.id]" class="mt-4 p-3 bg-purple-50/50 dark:bg-theme-dark-surface/60 rounded-xl border border-theme-light-border dark:border-theme-dark-border">
             <div class="flex justify-between text-xs font-bold mb-1">
               <span>Лимит: {{ limitsMap[cat.id].limit_amount }} {{ limitsMap[cat.id].currency }}</span>
@@ -62,100 +61,28 @@
         </div>
 
         <div class="flex items-center justify-between pt-4 mt-4 border-t border-theme-light-border dark:border-theme-dark-border text-xs font-bold">
-          <div class="flex gap-2">
-            <button @click="openLimitModal(cat)" class="text-purple-600 dark:text-purple-400 hover:underline">
-              Лимит
-            </button>
-            <button @click="openEditModal(cat)" class="text-slate-600 dark:text-purple-300 hover:underline">
-              Изменить
-            </button>
+          <div class="flex gap-3">
+            <button @click="openLimitModal(cat)" class="text-purple-600 dark:text-purple-400 hover:underline">Лимит</button>
+            <button @click="openEditModal(cat)" class="text-slate-600 dark:text-purple-300 hover:underline">Изменить</button>
           </div>
-          <button @click="deleteCategory(cat.id)" class="text-red-500 hover:underline">
-            Удалить
-          </button>
+          <button @click="deleteCategory(cat.id)" class="text-red-500 hover:underline">Удалить</button>
         </div>
       </div>
     </div>
 
-    <!-- Модалка создания категории -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Создать категорию</h3>
-        <form @submit.prevent="createCategory" class="space-y-4">
-          <div>
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Название</label>
-            <input v-model="form.name" required placeholder="Продукты, Кафе..." class="mt-1 w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none" />
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Цвет категории</label>
-            <div class="flex items-center gap-3 mt-1">
-              <input type="color" v-model="form.color" class="w-10 h-10 rounded-xl cursor-pointer bg-transparent border-0" />
-              <span class="text-xs font-mono font-bold">{{ form.color }}</span>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Группа</label>
-            <select v-model="form.group" class="mt-1 w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-semibold outline-none">
-              <option value="EXPENSE">Расход</option>
-              <option value="INCOME">Доход</option>
-              <option value="INVESTMENT">Инвестиции</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Периодичность</label>
-            <select v-model="form.frequency" class="mt-1 w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-semibold outline-none">
-              <option value="NONE">Разовая / Без расписания</option>
-              <option value="DAILY">Ежедневно</option>
-              <option value="WEEKLY">Еженедельно</option>
-              <option value="MONTHLY">Ежемесячно</option>
-              <option value="QUARTERLY">Ежеквартально</option>
-              <option value="ANNUALLY">Ежегодно</option>
-            </select>
-          </div>
-
-          <div v-if="form.frequency === 'MONTHLY'">
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Число месяца списания (1-31)</label>
-            <input v-model.number="form.day_of_month" type="number" min="1" max="31" class="mt-1 w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none" />
-          </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showCreateModal = false" class="px-4 py-2 text-xs font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border">Отмена</button>
-            <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary text-white rounded-xl shadow-md">Сохранить</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Модалка редактирования категории -->
-    <div v-if="editCat" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Редактировать категорию</h3>
-        <form @submit.prevent="updateCategory" class="space-y-4">
-          <div>
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Название</label>
-            <input v-model="editForm.name" required class="mt-1 w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Цвет</label>
-            <div class="flex items-center gap-3 mt-1">
-              <input type="color" v-model="editForm.color" class="w-10 h-10 rounded-xl cursor-pointer bg-transparent border-0" />
-              <span class="text-xs font-mono font-bold">{{ editForm.color }}</span>
-            </div>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">День списания</label>
-            <input v-model.number="editForm.day_of_month" type="number" min="1" max="31" class="mt-1 w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none" />
-          </div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="editCat = null" class="px-4 py-2 text-xs font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border">Отмена</button>
-            <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary text-white rounded-xl shadow-md">Сохранить</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <!-- Модалка создания/редактирования -->
+    <CategoryModal
+      :show="showCreateModal || !!editCat"
+      :isEdit="!!editCat"
+      :formData="editCat ? editForm : form"
+      :groupOptions="groupOptions"
+      :frequencyOptions="frequencyOptions"
+      :weekDayOptions="weekDayOptions"
+      :quarterMonthOptions="quarterMonthOptions"
+      :yearMonthOptions="yearMonthOptions"
+      @close="closeModal"
+      @submit="editCat ? updateCategory() : createCategory()"
+    />
 
     <!-- Модалка установки лимита -->
     <div v-if="limitCat" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -163,16 +90,16 @@
         <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Установить лимит для "{{ limitCat.name }}"</h3>
         <form @submit.prevent="saveLimit" class="space-y-4">
           <div>
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Сумма лимита в месяц</label>
-            <input v-model.number="limitForm.amount" type="number" min="1" required class="mt-1 w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-mono outline-none" />
+            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">Сумма лимита в месяц</label>
+            <input v-model.number="limitForm.amount" type="number" step="any" min="1" required class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm font-mono outline-none text-slate-800 dark:text-purple-100" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Срок действия (в месяцах)</label>
-            <input v-model.number="limitForm.months" type="number" min="1" max="36" class="mt-1 w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none" />
+            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">Срок действия (в месяцах)</label>
+            <input v-model.number="limitForm.months" type="number" min="1" max="36" class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none text-slate-800 dark:text-purple-100" />
           </div>
           <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="limitCat = null" class="px-4 py-2 text-xs font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border">Отмена</button>
-            <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary text-white rounded-xl shadow-md">Установить</button>
+            <button type="button" @click="limitCat = null" class="px-4 py-2 text-xs font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition">Отмена</button>
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary hover:bg-theme-accent-hover text-white rounded-xl shadow-md transition">Установить</button>
           </div>
         </form>
       </div>
@@ -184,6 +111,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { Plus } from 'lucide-vue-next';
 import api from '@/api';
+import CategoryModal from '@/components/CategoryModal.vue';
 
 const categories = ref([]);
 const limitsMap = ref({});
@@ -191,58 +119,65 @@ const showCreateModal = ref(false);
 const editCat = ref(null);
 const limitCat = ref(null);
 
-const groupLabels = {
-  INCOME: 'Доход',
-  EXPENSE: 'Расход',
-  INVESTMENT: 'Инвестиции'
-};
+const groupLabels = { INCOME: 'Доход', EXPENSE: 'Расход', INVESTMENT: 'Инвестиции' };
+const freqLabels = { NONE: 'Разовая', DAILY: 'Ежедневно', WEEKLY: 'Еженедельно', MONTHLY: 'Ежемесячно', QUARTERLY: 'Ежеквартально', ANNUALLY: 'Ежегодно' };
+const groupOptions = [{ label: 'Расход', value: 'EXPENSE' }, { label: 'Доход', value: 'INCOME' }, { label: 'Инвестиции', value: 'INVESTMENT' }];
+const frequencyOptions = [
+  { label: 'Разовая / Без расписания', value: 'NONE' }, { label: 'Ежедневно', value: 'DAILY' },
+  { label: 'Еженедельно', value: 'WEEKLY' }, { label: 'Ежемесячно', value: 'MONTHLY' },
+  { label: 'Ежеквартально', value: 'QUARTERLY' }, { label: 'Ежегодно', value: 'ANNUALLY' }
+];
 
-const freqLabels = {
-  NONE: 'Разовая',
-  DAILY: 'Ежедневно',
-  WEEKLY: 'Еженедельно',
-  MONTHLY: 'Ежемесячно',
-  QUARTERLY: 'Ежеквартально',
-  ANNUALLY: 'Ежегодно'
-};
+const weekDayOptions = [
+  { label: 'Понедельник', value: 1 }, { label: 'Вторник', value: 2 }, { label: 'Среда', value: 3 },
+  { label: 'Четверг', value: 4 }, { label: 'Пятница', value: 5 }, { label: 'Суббота', value: 6 }, { label: 'Воскресенье', value: 7 }
+];
+const quarterMonthOptions = [{ label: '1-й месяц квартала', value: 1 }, { label: '2-й месяц квартала', value: 2 }, { label: '3-й месяц квартала', value: 3 }];
+const yearMonthOptions = [
+  { label: 'Январь', value: 1 }, { label: 'Февраль', value: 2 }, { label: 'Март', value: 3 }, { label: 'Апрель', value: 4 },
+  { label: 'Май', value: 5 }, { label: 'Июнь', value: 6 }, { label: 'Июль', value: 7 }, { label: 'Август', value: 8 },
+  { label: 'Сентябрь', value: 9 }, { label: 'Октябрь', value: 10 }, { label: 'Ноябрь', value: 11 }, { label: 'Декабрь', value: 12 }
+];
 
-const form = reactive({
-  name: '',
-  color: '#8b5cf6',
-  group: 'EXPENSE',
-  frequency: 'NONE',
-  day_of_month: null
-});
+const form = reactive({ name: '', color: '#8b5cf6', group: 'EXPENSE', frequency: 'NONE', day_of_month: 1, day_of_week: 1, recurrence_month: 1 });
+const editForm = reactive({ name: '', color: '#8b5cf6', frequency: 'NONE', day_of_month: 1, day_of_week: 1, recurrence_month: 1 });
+const limitForm = reactive({ amount: 10000, months: 12 });
 
-const editForm = reactive({
-  name: '',
-  color: '#8b5cf6',
-  day_of_month: null
-});
+function formatSchedule(cat) {
+  if (cat.frequency === 'DAILY') return 'Каждый день';
+  if (cat.frequency === 'WEEKLY') {
+    const d = weekDayOptions.find(o => o.value === cat.day_of_week);
+    return `Еженедельно: ${d ? d.label : 'день ' + cat.day_of_week}`;
+  }
+  if (cat.frequency === 'MONTHLY') return `День списания: ${cat.day_of_month || 1}-е число`;
+  if (cat.frequency === 'QUARTERLY') return `Ежеквартально: ${cat.recurrence_month || 1}-й мес., ${cat.day_of_month || 1}-е число`;
+  if (cat.frequency === 'ANNUALLY') {
+    const m = yearMonthOptions.find(o => o.value === cat.recurrence_month);
+    return `Ежегодно: ${cat.day_of_month || 1} ${m ? m.label : 'мес. ' + cat.recurrence_month}`;
+  }
+  return 'Без расписания';
+}
 
-const limitForm = reactive({
-  amount: 10000,
-  months: 12
-});
+function closeModal() {
+  showCreateModal.value = false;
+  editCat.value = null;
+}
 
 async function fetchCategories() {
   const { data } = await api.get('/categories');
   categories.value = data;
-
   const now = new Date();
   for (const c of data) {
     try {
       const { data: lim } = await api.get(`/limits/status/${c.id}?year=${now.getFullYear()}&month=${now.getMonth() + 1}`);
       limitsMap.value[c.id] = lim;
-    } catch (e) {
-      // лимит не установлен
-    }
+    } catch (e) {}
   }
 }
 
 async function createCategory() {
   await api.post('/categories', form);
-  showCreateModal.value = false;
+  closeModal();
   form.name = '';
   await fetchCategories();
 }
@@ -251,26 +186,22 @@ function openEditModal(c) {
   editCat.value = c;
   editForm.name = c.name;
   editForm.color = c.color || '#8b5cf6';
-  editForm.day_of_month = c.day_of_month;
+  editForm.frequency = c.frequency;
+  editForm.day_of_month = c.day_of_month || 1;
+  editForm.day_of_week = c.day_of_week || 1;
+  editForm.recurrence_month = c.recurrence_month || 1;
 }
 
 async function updateCategory() {
   await api.put(`/categories/${editCat.value.id}`, editForm);
-  editCat.value = null;
+  closeModal();
   await fetchCategories();
 }
 
-function openLimitModal(c) {
-  limitCat.value = c;
-}
+function openLimitModal(c) { limitCat.value = c; }
 
 async function saveLimit() {
-  await api.post('/limits', {
-    category_id: limitCat.value.id,
-    limit_amount: limitForm.amount,
-    currency: 'RUB',
-    months_duration: limitForm.months
-  });
+  await api.post('/limits', { category_id: limitCat.value.id, limit_amount: limitForm.amount, currency: 'RUB', months_duration: limitForm.months });
   limitCat.value = null;
   await fetchCategories();
 }

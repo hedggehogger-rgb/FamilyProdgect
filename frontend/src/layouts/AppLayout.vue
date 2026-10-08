@@ -3,12 +3,12 @@
     <!-- Боковое меню -->
     <aside class="w-64 bg-theme-light-surface dark:bg-theme-dark-surface border-r border-theme-light-border dark:border-theme-dark-border flex flex-col justify-between shadow-lg z-20">
       <div>
-        <!-- Логотип -->
+        <!-- Логотип: без градиента, чистый цвет -->
         <div class="h-16 flex items-center gap-3 px-6 border-b border-theme-light-border dark:border-theme-dark-border">
-          <div class="w-9 h-9 rounded-xl bg-theme-accent-primary flex items-center justify-center text-white shadow-md shadow-purple-500/30">
+          <div class="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center text-white shadow-md shadow-purple-500/30">
             <WalletCards class="w-5 h-5 text-white" />
           </div>
-          <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-purple-600 to-indigo-500 dark:from-purple-400 dark:to-indigo-300 bg-clip-text text-transparent">
+          <span class="font-black text-xl tracking-tight text-purple-600 dark:text-purple-300">
             Family Finance
           </span>
         </div>
@@ -40,8 +40,8 @@
           </div>
           <div class="overflow-hidden">
             <p class="text-sm font-bold truncate">{{ auth.user?.name }}</p>
-            <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">
-              {{ auth.user?.role === 'HUSBAND' ? 'Муж' : 'Жена' }}
+            <p class="text-xs text-purple-600 dark:text-purple-400 font-bold">
+              {{ auth.user?.role === 'HUSBAND' ? 'Любими Муж' : 'КошкоЖена' }}
             </p>
           </div>
         </div>
@@ -62,7 +62,6 @@
         <h1 class="text-xl font-black tracking-tight text-slate-800 dark:text-purple-100">{{ pageTitle }}</h1>
 
         <div class="flex items-center gap-4">
-          <!-- Переключатель темы (быстрый) -->
           <button
             @click="settings.toggleTheme()"
             class="p-2 rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-theme-light-hover dark:hover:bg-theme-dark-hover transition text-purple-600 dark:text-purple-300"
@@ -78,7 +77,6 @@
         </div>
       </header>
 
-      <!-- Страницы -->
       <main class="flex-1 overflow-y-auto p-8 bg-theme-light-bg dark:bg-theme-dark-bg">
         <div class="max-w-7xl mx-auto pb-12">
           <RouterView />
@@ -111,9 +109,7 @@ const router = useRouter();
 const auth = useAuthStore();
 const settings = useSettingsStore();
 
-onMounted(() => {
-  settings.initTheme();
-});
+onMounted(() => settings.initTheme());
 
 const navItems = [
   { label: 'Главная', path: '/', icon: LayoutDashboard },
