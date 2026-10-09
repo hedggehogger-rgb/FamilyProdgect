@@ -23,7 +23,7 @@
         <div class="flex justify-between items-start">
           <div>
             <h3 class="font-black text-slate-800 dark:text-purple-100 text-lg">{{ pb.name }}</h3>
-            <span class="text-xs text-theme-light-muted dark:text-theme-dark-muted font-mono">Привязана к: {{ pb.account_id }}</span>
+            <span class="text-xs text-theme-light-muted dark:text-theme-dark-muted font-mono">Привязана к: {{ getAccountName(pb.account_id) }}</span>
           </div>
           <span :class="pb.is_completed ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200'" class="text-xs px-3 py-1 rounded-full font-bold">
             {{ pb.is_completed ? 'Цель достигнута 🎉' : 'Копим' }}
@@ -41,10 +41,10 @@
         </div>
 
         <div class="flex items-center justify-between pt-2">
-          <button @click="openDeposit(pb)" class="text-xs bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 hover:bg-purple-200 font-bold px-3 py-2 rounded-xl transition">
+          <button @click="openDepositModal(pb)" class="text-xs bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 hover:bg-purple-200 font-bold px-3 py-2 rounded-xl transition">
             Пополнить
           </button>
-          <button @click="deletePiggy(pb.id)" class="text-xs text-rose-500 hover:text-rose-700 font-bold">
+          <button @click="askDelete(pb)" class="text-xs text-rose-500 hover:text-rose-700 font-bold">
             Разбить / Удалить
           </button>
         </div>
@@ -52,7 +52,7 @@
     </div>
 
     <!-- Модалка создания копилки -->
-    <div v-if="showModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div v-if="showModal" @click.self="showModal = false" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
         <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Новая копилка</h3>
         <form @submit.prevent="createPiggy" class="space-y-4">
@@ -66,17 +66,42 @@
           </div>
           <div>
             <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">Счёт для списания</label>
-            <CustomSelect
-              v-model="createForm.account_id"
-              :options="accountOptions"
-              placeholder="Выберите счёт"
-            />
+            <CustomSelect v-model="createForm.account_id" :options="accountOptions" placeholder="Выберите счёт" />
           </div>
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" @click="showModal = false" class="px-4 py-2 text-xs font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition">Отмена</button>
             <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary hover:bg-theme-accent-hover text-white rounded-xl shadow-md transition">Создать</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Модалка пополнения -->
+    <div v-if="depositTarget" @click.self="depositTarget = null" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Пополнить "{{ depositTarget.name }}"</h3>
+        <form @submit.prevent="submitDeposit" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">Сумма взноса ({{ depositTarget.currency }})</label>
+            <input v-model.number="depositAmount" type="number" step="any" min="0.01" required placeholder="0.00" class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none text-slate-800 dark:text-purple-100 font-mono font-bold" />
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" @click="depositTarget = null" class="px-4 py-2 text-xs font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition">Отмена</button>
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary hover:bg-theme-accent-hover text-white rounded-xl shadow-md transition">Внести</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Модалка удаления -->
+    <div v-if="deleteTarget" @click.self="deleteTarget = null" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+        <h3 class="text-lg font-black text-slate-800 dark:text-purple-100 mb-2">Разбить копилку?</h3>
+        <p class="text-sm text-theme-light-muted dark:text-theme-dark-muted mb-6">Все накопленные средства ({{ deleteTarget.current_amount }} {{ deleteTarget.currency }}) будут возвращены на связанный счёт.</p>
+        <div class="flex justify-center gap-3">
+          <button @click="deleteTarget = null" class="px-5 py-2.5 text-sm font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition">Отмена</button>
+          <button @click="confirmDelete" class="px-5 py-2.5 text-sm font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-md transition">Разбить</button>
+        </div>
       </div>
     </div>
   </div>
@@ -91,6 +116,9 @@ import CustomSelect from '@/components/CustomSelect.vue';
 const piggyBanks = ref([]);
 const accounts = ref([]);
 const showModal = ref(false);
+const depositTarget = ref(null);
+const depositAmount = ref(null);
+const deleteTarget = ref(null);
 
 const createForm = reactive({
   name: '',
@@ -105,6 +133,11 @@ const accountOptions = computed(() => {
     value: a.id
   }));
 });
+
+function getAccountName(id) {
+  const acc = accounts.value.find(a => a.id === id);
+  return acc ? acc.name : id;
+}
 
 function getPercent(pb) {
   const p = (Number(pb.current_amount) / Number(pb.target_amount)) * 100;
@@ -130,16 +163,26 @@ async function createPiggy() {
   await loadData();
 }
 
-async function openDeposit(pb) {
-  const sum = prompt(`Сколько внести в копилку "${pb.name}"?`);
-  if (!sum || isNaN(sum) || Number(sum) <= 0) return;
-  await api.post(`/piggy-banks/${pb.id}/deposit`, { amount: Number(sum) });
+function openDepositModal(pb) {
+  depositTarget.value = pb;
+  depositAmount.value = null;
+}
+
+async function submitDeposit() {
+  if (!depositAmount.value || depositAmount.value <= 0) return;
+  await api.post(`/piggy-banks/${depositTarget.value.id}/deposit`, { amount: depositAmount.value });
+  depositTarget.value = null;
   await loadData();
 }
 
-async function deletePiggy(id) {
-  if (!confirm('Удалить копилку? Средства вернутся на связанный счёт.')) return;
-  await api.delete(`/piggy-banks/${id}?return_funds=true`);
+function askDelete(pb) {
+  deleteTarget.value = pb;
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return;
+  await api.delete(`/piggy-banks/${deleteTarget.value.id}?return_funds=true`);
+  deleteTarget.value = null;
   await loadData();
 }
 

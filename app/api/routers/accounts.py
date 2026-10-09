@@ -1,3 +1,4 @@
+import uuid # Добавили импорт
 from typing import List
 from fastapi import APIRouter, Depends, status
 from app.api.dependencies import get_account_service, get_current_user
@@ -8,7 +9,6 @@ from app.services.account_service import AccountService
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
-
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_account(
     dto: AccountCreateSchema,
@@ -16,7 +16,7 @@ def create_account(
     svc: AccountService = Depends(get_account_service),
 ):
     acc = Account(
-        id=dto.id,
+        id=dto.id or f"acc-{uuid.uuid4().hex[:8]}", # Исправлено: генерация ID
         name=dto.name,
         currency=dto.currency,
         balance=dto.balance,
@@ -25,7 +25,6 @@ def create_account(
     )
     svc.create_account(acc)
     return {"status": "success", "id": acc.id}
-
 
 @router.get("", response_model=List[AccountResponseSchema])
 def get_all_accounts(
@@ -44,7 +43,6 @@ def get_all_accounts(
         for acc in accounts
     ]
 
-
 @router.get("/{account_id}", response_model=AccountResponseSchema)
 def get_account(
     account_id: str,
@@ -59,7 +57,6 @@ def get_account(
         balance=acc.balance,
         is_investment=acc.is_investment,
     )
-
 
 @router.delete("/{account_id}", status_code=status.HTTP_200_OK)
 def delete_account(

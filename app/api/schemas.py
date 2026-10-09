@@ -79,6 +79,8 @@ class AccountResponseSchema(BaseModel):
     is_investment: bool
 
 
+# ... (остальной код schemas.py)
+
 class CategoryCreateSchema(BaseModel):
     id: Optional[str] = None
     name: str = Field(..., min_length=1, max_length=100)
@@ -90,14 +92,19 @@ class CategoryCreateSchema(BaseModel):
     day_of_week: Optional[int] = None
     recurrence_month: Optional[int] = None
     color: str = "#8b5cf6"
+    default_amount: Optional[Decimal] = None  # Добавлено
+    default_account_id: Optional[str] = None  # Добавлено
 
 
 class CategoryUpdateSchema(BaseModel):
     name: Optional[str] = None
+    frequency: Optional[RecurrenceFrequency] = None
     day_of_month: Optional[int] = None
     day_of_week: Optional[int] = None
     recurrence_month: Optional[int] = None
     color: Optional[str] = None
+    default_amount: Optional[Decimal] = None  # Добавлено
+    default_account_id: Optional[str] = None  # Добавлено
 
 
 class CategoryResponseSchema(BaseModel):
@@ -111,7 +118,12 @@ class CategoryResponseSchema(BaseModel):
     day_of_week: Optional[int]
     recurrence_month: Optional[int]
     color: str
+    default_amount: Optional[Decimal] = None  # Добавлено
+    default_account_id: Optional[str] = None  # Добавлено
     created_at: datetime
+
+
+# ... (остальной код schemas.py)
 
 
 class TransactionCreateSchema(BaseModel):
@@ -204,6 +216,7 @@ class PiggyBankCreateSchema(BaseModel):
 
 class PiggyBankDepositSchema(BaseModel):
     amount: Decimal = Field(..., gt=0)
+    account_id: str = Field(..., min_length=1) # Новое обязательное поле
     author: Optional[Author] = None
     note: Optional[str] = None
 

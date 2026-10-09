@@ -90,6 +90,8 @@ class Category:
     day_of_week: Optional[int] = None
     recurrence_month: Optional[int] = None
     color: str = "#8b5cf6"
+    default_amount: Optional[Decimal] = None      # Добавлено
+    default_account_id: Optional[str] = None      # Добавлено
     family_group_id: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
 

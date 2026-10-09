@@ -91,25 +91,17 @@ import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
-import {
-  LayoutDashboard,
-  CreditCard,
-  CalendarDays,
-  Tags,
-  PiggyBank,
-  Settings,
-  LogOut,
-  Sun,
-  Moon,
-  WalletCards
-} from 'lucide-vue-next';
+import { LayoutDashboard, CreditCard, CalendarDays, Tags, PiggyBank, Settings, LogOut, Sun, Moon, WalletCards } from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const settings = useSettingsStore();
 
-onMounted(() => settings.initTheme());
+onMounted(() => {
+  settings.initTheme();
+  settings.fetchRates(); // ИСПРАВЛЕНИЕ: Скачиваем курсы при входе
+});
 
 const navItems = [
   { label: 'Главная', path: '/', icon: LayoutDashboard },

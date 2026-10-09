@@ -1,9 +1,9 @@
-         <template>
+<template>
   <div class="space-y-6">
     <div class="flex justify-between items-center">
       <div>
         <h2 class="text-xl font-black text-slate-800 dark:text-purple-100">Категории и лимиты</h2>
-        <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mt-1">Управление бюджетом и лимитами расходов</p>
+        <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mt-1">Управление бюджетом и плановыми операциями</p>
       </div>
       <button
         @click="showCreateModal = true"
@@ -19,7 +19,7 @@
       <div
         v-for="cat in categories"
         :key="cat.id"
-        class="bg-theme-light-card dark:bg-theme-dark-card p-6 rounded-2xl border border-theme-light-border dark:border-theme-dark-border shadow-sm flex flex-col justify-between"
+        class="bg-theme-light-card dark:bg-theme-dark-card p-6 rounded-2xl border border-theme-light-border dark:border-theme-dark-border shadow-sm flex flex-col justify-between relative overflow-hidden"
       >
         <div>
           <div class="flex justify-between items-start mb-3">
@@ -43,6 +43,10 @@
             {{ formatSchedule(cat) }}
           </p>
 
+          <div v-if="cat.default_amount" class="mt-2 text-xs font-bold font-mono" :class="cat.group === 'INCOME' ? 'text-emerald-500' : 'text-rose-500'">
+            План: {{ cat.default_amount }} (счёт: {{ getAccountName(cat.default_account_id) }})
+          </div>
+
           <div v-if="limitsMap[cat.id]" class="mt-4 p-3 bg-purple-50/50 dark:bg-theme-dark-surface/60 rounded-xl border border-theme-light-border dark:border-theme-dark-border">
             <div class="flex justify-between text-xs font-bold mb-1">
               <span>Лимит: {{ limitsMap[cat.id].limit_amount }} {{ limitsMap[cat.id].currency }}</span>
@@ -61,11 +65,11 @@
         </div>
 
         <div class="flex items-center justify-between pt-4 mt-4 border-t border-theme-light-border dark:border-theme-dark-border text-xs font-bold">
-          <div class="flex gap-3">
-            <button @click="openLimitModal(cat)" class="text-purple-600 dark:text-purple-400 hover:underline">Лимит</button>
-            <button @click="openEditModal(cat)" class="text-slate-600 dark:text-purple-300 hover:underline">Изменить</button>
+          <div class="flex gap-4">
+            <button v-if="cat.group === 'EXPENSE'" @click="openLimitModal(cat)" class="text-purple-600 dark:text-purple-400 hover:underline">Лимит</button>
+            <button @click="openEditModal(cat)" class="text-purple-600 dark:text-purple-400 hover:underline">Изменить</button>
           </div>
-          <button @click="deleteCategory(cat.id)" class="text-red-500 hover:underline">Удалить</button>
+          <button @click="askDelete(cat)" class="text-red-500 hover:underline">Удалить</button>
         </div>
       </div>
     </div>
@@ -80,12 +84,13 @@
       :weekDayOptions="weekDayOptions"
       :quarterMonthOptions="quarterMonthOptions"
       :yearMonthOptions="yearMonthOptions"
+      :accountOptions="accountOptions"
       @close="closeModal"
       @submit="editCat ? updateCategory() : createCategory()"
     />
 
     <!-- Модалка установки лимита -->
-    <div v-if="limitCat" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div v-if="limitCat" @click.self="limitCat = null" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
         <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Установить лимит для "{{ limitCat.name }}"</h3>
         <form @submit.prevent="saveLimit" class="space-y-4">
@@ -104,20 +109,34 @@
         </form>
       </div>
     </div>
+
+    <!-- Модалка удаления категории -->
+    <div v-if="deleteTarget" @click.self="deleteTarget = null" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+        <h3 class="text-lg font-black text-slate-800 dark:text-purple-100 mb-2">Удалить категорию?</h3>
+        <p class="text-sm text-theme-light-muted dark:text-theme-dark-muted mb-6">Категория "{{ deleteTarget.name }}" будет удалена. Связанные операции останутся без категории.</p>
+        <div class="flex justify-center gap-3">
+          <button @click="deleteTarget = null" class="px-5 py-2.5 text-sm font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition">Отмена</button>
+          <button @click="confirmDelete" class="px-5 py-2.5 text-sm font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-md transition">Удалить</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { Plus } from 'lucide-vue-next';
 import api from '@/api';
-import CategoryModal from '@/components/CategoryModal.vue';
+import CategoryModal from './CategoryModal.vue';
 
 const categories = ref([]);
+const accounts = ref([]);
 const limitsMap = ref({});
 const showCreateModal = ref(false);
 const editCat = ref(null);
 const limitCat = ref(null);
+const deleteTarget = ref(null);
 
 const groupLabels = { INCOME: 'Доход', EXPENSE: 'Расход', INVESTMENT: 'Инвестиции' };
 const freqLabels = { NONE: 'Разовая', DAILY: 'Ежедневно', WEEKLY: 'Еженедельно', MONTHLY: 'Ежемесячно', QUARTERLY: 'Ежеквартально', ANNUALLY: 'Ежегодно' };
@@ -139,17 +158,32 @@ const yearMonthOptions = [
   { label: 'Сентябрь', value: 9 }, { label: 'Октябрь', value: 10 }, { label: 'Ноябрь', value: 11 }, { label: 'Декабрь', value: 12 }
 ];
 
-const form = reactive({ name: '', color: '#8b5cf6', group: 'EXPENSE', frequency: 'NONE', day_of_month: 1, day_of_week: 1, recurrence_month: 1 });
-const editForm = reactive({ name: '', color: '#8b5cf6', frequency: 'NONE', day_of_month: 1, day_of_week: 1, recurrence_month: 1 });
+const form = reactive({ name: '', color: '#8b5cf6', group: 'EXPENSE', frequency: 'NONE', day_of_month: 1, day_of_week: 1, recurrence_month: 1, default_amount: null, default_account_id: null });
+const editForm = reactive({ name: '', color: '#8b5cf6', frequency: 'NONE', day_of_month: 1, day_of_week: 1, recurrence_month: 1, default_amount: null, default_account_id: null });
 const limitForm = reactive({ amount: 10000, months: 12 });
 
+const accountOptions = computed(() => {
+  return accounts.value.map(a => ({
+    label: `${a.name} (${a.currency})`,
+    value: a.id
+  }));
+});
+
+function getAccountName(id) {
+  if (!id) return '?';
+  const acc = accounts.value.find(a => a.id === id);
+  return acc ? acc.name : 'Удаленный счёт';
+}
+
 function formatSchedule(cat) {
+  const actionText = cat.group === 'INCOME' ? 'начисления' : 'списания';
+
   if (cat.frequency === 'DAILY') return 'Каждый день';
   if (cat.frequency === 'WEEKLY') {
     const d = weekDayOptions.find(o => o.value === cat.day_of_week);
     return `Еженедельно: ${d ? d.label : 'день ' + cat.day_of_week}`;
   }
-  if (cat.frequency === 'MONTHLY') return `День списания: ${cat.day_of_month || 1}-е число`;
+  if (cat.frequency === 'MONTHLY') return `День ${actionText}: ${cat.day_of_month || 1}-е число`;
   if (cat.frequency === 'QUARTERLY') return `Ежеквартально: ${cat.recurrence_month || 1}-й мес., ${cat.day_of_month || 1}-е число`;
   if (cat.frequency === 'ANNUALLY') {
     const m = yearMonthOptions.find(o => o.value === cat.recurrence_month);
@@ -163,23 +197,40 @@ function closeModal() {
   editCat.value = null;
 }
 
-async function fetchCategories() {
-  const { data } = await api.get('/categories');
-  categories.value = data;
+async function loadData() {
+  const [catRes, accRes] = await Promise.all([
+    api.get('/categories'),
+    api.get('/accounts')
+  ]);
+  categories.value = catRes.data;
+  accounts.value = accRes.data;
+
+  if (accounts.value.length > 0 && !form.default_account_id) {
+    form.default_account_id = accounts.value[0].id;
+  }
+
   const now = new Date();
-  for (const c of data) {
-    try {
-      const { data: lim } = await api.get(`/limits/status/${c.id}?year=${now.getFullYear()}&month=${now.getMonth() + 1}`);
-      limitsMap.value[c.id] = lim;
-    } catch (e) {}
+  for (const c of categories.value) {
+    if (c.group === 'EXPENSE') {
+      try {
+        const { data: lim } = await api.get(`/limits/status/${c.id}?year=${now.getFullYear()}&month=${now.getMonth() + 1}`);
+        limitsMap.value[c.id] = lim;
+      } catch (e) {}
+    }
   }
 }
 
 async function createCategory() {
-  await api.post('/categories', form);
+  const payload = { ...form };
+  if (payload.frequency === 'NONE' || payload.frequency === 'DAILY') {
+    payload.default_amount = null;
+    payload.default_account_id = null;
+  }
+  await api.post('/categories', payload);
   closeModal();
   form.name = '';
-  await fetchCategories();
+  form.default_amount = null;
+  await loadData();
 }
 
 function openEditModal(c) {
@@ -190,12 +241,19 @@ function openEditModal(c) {
   editForm.day_of_month = c.day_of_month || 1;
   editForm.day_of_week = c.day_of_week || 1;
   editForm.recurrence_month = c.recurrence_month || 1;
+  editForm.default_amount = c.default_amount || null;
+  editForm.default_account_id = c.default_account_id || (accounts.value.length > 0 ? accounts.value[0].id : null);
 }
 
 async function updateCategory() {
-  await api.put(`/categories/${editCat.value.id}`, editForm);
+  const payload = { ...editForm };
+  if (payload.frequency === 'NONE' || payload.frequency === 'DAILY') {
+    payload.default_amount = null;
+    payload.default_account_id = null;
+  }
+  await api.put(`/categories/${editCat.value.id}`, payload);
   closeModal();
-  await fetchCategories();
+  await loadData();
 }
 
 function openLimitModal(c) { limitCat.value = c; }
@@ -203,14 +261,19 @@ function openLimitModal(c) { limitCat.value = c; }
 async function saveLimit() {
   await api.post('/limits', { category_id: limitCat.value.id, limit_amount: limitForm.amount, currency: 'RUB', months_duration: limitForm.months });
   limitCat.value = null;
-  await fetchCategories();
+  await loadData();
 }
 
-async function deleteCategory(id) {
-  if (!confirm('Удалить категорию?')) return;
-  await api.delete(`/categories/${id}`);
-  await fetchCategories();
+function askDelete(cat) {
+  deleteTarget.value = cat;
 }
 
-onMounted(fetchCategories);
+async function confirmDelete() {
+  if (!deleteTarget.value) return;
+  await api.delete(`/categories/${deleteTarget.value.id}`);
+  deleteTarget.value = null;
+  await loadData();
+}
+
+onMounted(loadData);
 </script>

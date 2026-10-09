@@ -97,7 +97,6 @@ class PostgresAccountRepository(BasePostgresRepository, IAccountRepository):
             family_group_id=row.family_group_id,
         )
 
-
 class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
 
     def add(self, category: Category) -> None:
@@ -117,6 +116,8 @@ class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
                 day_of_week=category.day_of_week,
                 recurrence_month=category.recurrence_month,
                 color=category.color,
+                default_amount=category.default_amount,         # Добавлено
+                default_account_id=category.default_account_id, # Добавлено
                 created_at=category.created_at,
             )
             db.merge(model)
@@ -163,6 +164,8 @@ class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
             day_of_week=getattr(row, "day_of_week", None),
             recurrence_month=getattr(row, "recurrence_month", None),
             color=getattr(row, "color", "#8b5cf6") or "#8b5cf6",
+            default_amount=Decimal(str(row.default_amount)) if row.default_amount else None, # Добавлено
+            default_account_id=row.default_account_id, # Добавлено
             family_group_id=row.family_group_id,
             created_at=row.created_at,
         )

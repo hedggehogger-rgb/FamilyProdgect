@@ -1,16 +1,7 @@
 from datetime import datetime
 from typing import Generator
 from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    Numeric,
-    String,
-    Text,
-    create_engine,
-    text,
+    Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text, create_engine, text,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from app.core.config import settings
@@ -31,7 +22,6 @@ def get_db() -> Generator[Session, None, None]:
 
 class FamilyGroupModel(Base):
     __tablename__ = "family_groups"
-
     id = Column(String(50), primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -39,14 +29,8 @@ class FamilyGroupModel(Base):
 
 class UserModel(Base):
     __tablename__ = "users"
-
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(
-        String(50),
-        ForeignKey("family_groups.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    family_group_id = Column(String(50), ForeignKey("family_groups.id", ondelete="CASCADE"), nullable=False, index=True)
     email = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False)
@@ -56,14 +40,8 @@ class UserModel(Base):
 
 class AccountModel(Base):
     __tablename__ = "accounts"
-
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(
-        String(50),
-        ForeignKey("family_groups.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    family_group_id = Column(String(50), ForeignKey("family_groups.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     currency = Column(String(10), nullable=False)
     balance = Column(Numeric(19, 2), nullable=False, default=0.0)
@@ -72,14 +50,8 @@ class AccountModel(Base):
 
 class CategoryModel(Base):
     __tablename__ = "categories"
-
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(
-        String(50),
-        ForeignKey("family_groups.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    family_group_id = Column(String(50), ForeignKey("family_groups.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     group = Column(String(30), nullable=False)
     periodicity = Column(String(30), nullable=False)
@@ -89,19 +61,18 @@ class CategoryModel(Base):
     day_of_week = Column(Integer, nullable=True)
     recurrence_month = Column(Integer, nullable=True)
     color = Column(String(30), default="#8b5cf6", nullable=False)
+
+    # Новые поля для регулярных операций
+    default_amount = Column(Numeric(19, 2), nullable=True)
+    default_account_id = Column(String(50), nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class TransactionModel(Base):
     __tablename__ = "transactions"
-
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(
-        String(50),
-        ForeignKey("family_groups.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    family_group_id = Column(String(50), ForeignKey("family_groups.id", ondelete="CASCADE"), nullable=False, index=True)
     category_id = Column(String(50), nullable=True)
     type = Column(String(30), nullable=False)
     amount = Column(Numeric(19, 2), nullable=False)
@@ -115,14 +86,8 @@ class TransactionModel(Base):
 
 class CategoryLimitModel(Base):
     __tablename__ = "category_limits"
-
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(
-        String(50),
-        ForeignKey("family_groups.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    family_group_id = Column(String(50), ForeignKey("family_groups.id", ondelete="CASCADE"), nullable=False, index=True)
     category_id = Column(String(50), nullable=False, index=True)
     limit_amount = Column(Numeric(19, 2), nullable=False)
     currency = Column(String(10), nullable=False)
@@ -133,14 +98,8 @@ class CategoryLimitModel(Base):
 
 class PiggyBankModel(Base):
     __tablename__ = "piggy_banks"
-
     id = Column(String(50), primary_key=True, index=True)
-    family_group_id = Column(
-        String(50),
-        ForeignKey("family_groups.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    family_group_id = Column(String(50), ForeignKey("family_groups.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     target_amount = Column(Numeric(19, 2), nullable=False)
     current_amount = Column(Numeric(19, 2), default=0.0, nullable=False)
@@ -156,13 +115,8 @@ class PiggyBankModel(Base):
 
 class PiggyBankNoteModel(Base):
     __tablename__ = "piggy_bank_notes"
-
     id = Column(String(50), primary_key=True, index=True)
-    piggy_bank_id = Column(
-        String(50),
-        ForeignKey("piggy_banks.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    piggy_bank_id = Column(String(50), ForeignKey("piggy_banks.id", ondelete="CASCADE"), nullable=False)
     author = Column(String(20), nullable=False)
     text = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -180,3 +134,7 @@ def init_db():
         conn.execute(text("ALTER TABLE category_limits ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
         conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
+
+        # Добавляем новые колонки для планирования операций
+        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_amount NUMERIC(19, 2);"))
+        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_account_id VARCHAR(50);"))
