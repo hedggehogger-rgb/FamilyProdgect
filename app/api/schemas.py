@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Generic, List, Optional, TypeVar
 from pydantic import BaseModel, Field
 from app.domain.models import (
+    DEFAULT_CATEGORY_COLOR,
     Author,
     CategoryGroup,
     CategoryPeriodicity,
@@ -89,7 +90,7 @@ class CategoryCreateSchema(BaseModel):
     day_of_month: Optional[int] = None
     day_of_week: Optional[int] = None
     recurrence_month: Optional[int] = None
-    color: str = "#8b5cf6"
+    color: str = DEFAULT_CATEGORY_COLOR
     default_amount: Optional[Decimal] = None
     default_account_id: Optional[str] = None
 

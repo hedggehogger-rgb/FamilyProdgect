@@ -43,15 +43,42 @@ class AccountService:
         self._tx_repo.save(transaction)
 
     def delete_transaction(
-        self, transaction_id: str, family_group_id: Optional[str] = None
+        self,
+        transaction_id: str,
+        family_group_id: Optional[str] = None,
+        target_account_id: Optional[str] = None,
     ) -> None:
         tx = self._tx_repo.get_by_id(transaction_id, family_group_id)
         if not tx:
             raise KeyError(f"Транзакция '{transaction_id}' не найдена")
 
-        # Откатываем баланс только если транзакция уже была исполнена
         if tx.is_executed:
-            self._apply_balance_changes(tx, rollback=True)
+            original_acc = self._account_repo.find_by_id(tx.account_id, family_group_id)
+            if original_acc:
+                # Исходный счёт существует — возвращаем деньги на него
+                self._apply_balance_changes(tx, rollback=True)
+            elif target_account_id:
+                # Счёт удалён, но пользователь выбрал другой счёт для зачисления
+                target_acc = self.get_account(target_account_id, family_group_id)
+                effective_tx = Transaction(
+                    id=tx.id,
+                    type=tx.type,
+                    category_id=tx.category_id,
+                    amount=tx.amount,
+                    currency=tx.currency,
+                    account_id=target_acc.id,
+                    to_account_id=tx.to_account_id,
+                    author=tx.author,
+                    note=tx.note,
+                    family_group_id=family_group_id,
+                    date=tx.date,
+                    is_executed=True,
+                )
+                self._apply_balance_changes(effective_tx, rollback=True)
+            else:
+                # Счёт удалён и альтернативный не выбран — просто удаляем запись
+                pass
+
         self._tx_repo.delete(transaction_id, family_group_id)
 
     def execute_deferred_transaction(
@@ -104,7 +131,13 @@ class AccountService:
     def _apply_balance_changes(
         self, tx: Transaction, rollback: bool = False
     ) -> None:
-        from_acc = self.get_account(tx.account_id, tx.family_group_id)
+        try:
+            from_acc = self.get_account(tx.account_id, tx.family_group_id)
+        except KeyError:
+            if rollback:
+                return
+            raise
+
         amount_in_from_cur = self._converter.convert(
             tx.amount, tx.currency, from_acc.currency
         )
@@ -132,7 +165,13 @@ class AccountService:
             self._account_repo.save(from_acc)
 
         elif tx.type == TransactionType.TRANSFER:
-            to_acc = self.get_account(tx.to_account_id, tx.family_group_id)
+            try:
+                to_acc = self.get_account(tx.to_account_id, tx.family_group_id)
+            except KeyError:
+                if rollback:
+                    return
+                raise
+
             amount_in_to_cur = self._converter.convert(
                 tx.amount, tx.currency, to_acc.currency
             )

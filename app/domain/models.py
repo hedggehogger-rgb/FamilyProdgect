@@ -4,6 +4,8 @@ from decimal import Decimal
 from enum import Enum
 from typing import Optional
 
+DEFAULT_CATEGORY_COLOR = "#8b5cf6"
+
 
 class Currency(str, Enum):
     RUB = "RUB"
@@ -68,7 +70,7 @@ class Transaction:
     to_account_id: Optional[str] = None
     family_group_id: Optional[str] = None
     date: datetime = field(default_factory=datetime.utcnow)
-    is_executed: bool = True  # False для будущих разовых платежей
+    is_executed: bool = True
 
     def __post_init__(self):
         if self.amount <= Decimal("0"):
@@ -90,7 +92,7 @@ class Category:
     day_of_month: Optional[int] = None
     day_of_week: Optional[int] = None
     recurrence_month: Optional[int] = None
-    color: str = "#8b5cf6"
+    color: str = DEFAULT_CATEGORY_COLOR
     default_amount: Optional[Decimal] = None
     default_account_id: Optional[str] = None
     family_group_id: Optional[str] = None

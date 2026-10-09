@@ -1,0 +1,40 @@
+<template>
+  <Teleport to="body">
+    <div v-if="target" @click.self="$emit('close')" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
+      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Пополнить "{{ target.name }}"</h3>
+        <form @submit.prevent="$emit('submit')" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-theme-light-muted mb-1">Сумма и валюта взноса</label>
+            <div class="flex gap-2">
+              <input v-model.number="form.amount" type="number" step="any" min="0.01" required placeholder="0.00" class="flex-1 bg-white dark:bg-theme-dark-card border rounded-xl p-2.5 text-sm font-mono font-bold" />
+              <div class="w-24 shrink-0">
+                <CustomSelect v-model="form.currency" :options="currencyOptions" size="md" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-theme-light-muted mb-1">Списать со счёта</label>
+            <CustomSelect v-model="form.account_id" :options="accountOptions" />
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" @click="$emit('close')" class="px-4 py-2 text-xs font-bold rounded-xl border hover:bg-slate-100 transition">Отмена</button>
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary text-white rounded-xl shadow-md">Внести</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </Teleport>
+</template>
+
+<script setup>
+import CustomSelect from '@/components/CustomSelect.vue';
+
+defineProps({
+  target: Object,
+  form: Object,
+  currencyOptions: Array,
+  accountOptions: Array,
+});
+defineEmits(['close', 'submit']);
+</script>

@@ -23,7 +23,7 @@
               ⚠️ Пополнение пропущено в этом месяце
             </div>
             <div v-else-if="pb.is_auto_replenish && pb.snoozed_until" class="text-[11px] text-indigo-500 font-bold mt-0.5">
-              ⏳ Отсрочено до: {{ new Date(pb.snoozed_until).toLocaleDateString('ru-RU') }}
+              ⏳ Отсрочено до: {{ formatDate(pb.snoozed_until) }}
             </div>
           </div>
           <span :class="pb.is_completed ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'" class="text-xs px-3 py-1 rounded-full font-bold">
@@ -46,7 +46,6 @@
             <button @click="openDepositModal(pb)" class="text-xs bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 hover:bg-purple-200 font-bold px-3 py-1.5 rounded-xl transition">
               Пополнить
             </button>
-
             <button
               @click="handleAutoClick(pb)"
               class="text-xs border flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition shadow-sm"
@@ -59,16 +58,10 @@
               <span class="w-2 h-2 rounded-full" :class="pb.is_auto_replenish ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'"></span>
               {{ pb.is_auto_replenish ? 'Отключить авто' : 'Включить авто' }}
             </button>
-
-            <button
-              v-if="isApproaching(pb)"
-              @click="openSnoozeModal(pb)"
-              class="text-xs bg-red-500 hover:bg-red-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-sm transition animate-pulse"
-            >
+            <button v-if="isApproaching(pb)" @click="openSnoozeModal(pb)" class="text-xs bg-red-500 hover:bg-red-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-sm transition animate-pulse">
               Отсрочить пополнение
             </button>
           </div>
-
           <button @click="askDelete(pb)" class="text-xs text-rose-500 hover:text-rose-700 font-bold">
             Разбить / Удалить
           </button>
@@ -76,135 +69,12 @@
       </div>
     </div>
 
-    <!-- Модалка создания копилки -->
-    <Teleport to="body">
-      <div v-if="showModal" @click.self="showModal = false" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-        <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
-          <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Новая копилка</h3>
-          <form @submit.prevent="createPiggy" class="space-y-4">
-            <div><label class="block text-xs font-bold text-theme-light-muted mb-1">Название цели</label><input v-model="createForm.name" required placeholder="На отпуск" class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border rounded-xl p-2.5 text-sm outline-none text-slate-800 dark:text-purple-100" /></div>
-            <div><label class="block text-xs font-bold text-theme-light-muted mb-1">Целевая сумма</label><input v-model.number="createForm.target_amount" type="number" step="any" min="1" required class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border rounded-xl p-2.5 text-sm outline-none text-slate-800 font-mono font-bold" /></div>
-            <div><label class="block text-xs font-bold text-theme-light-muted mb-1">Счёт для списаний (по умолчанию)</label><CustomSelect v-model="createForm.account_id" :options="accountOptions" /></div>
-            <div><label class="block text-xs font-bold text-theme-light-muted mb-1">Валюта копилки</label><CustomSelect v-model="createForm.currency" :options="symbolCurrencyOptions" /></div>
-
-            <div class="pt-3 border-t border-theme-light-border">
-              <div class="flex items-center gap-2 mb-3">
-                <input type="checkbox" v-model="createForm.is_auto_replenish" id="auto" class="rounded accent-purple-600 w-4 h-4 cursor-pointer" />
-                <label for="auto" class="text-xs font-bold text-slate-800 dark:text-purple-200 cursor-pointer">Включить автопополнение</label>
-              </div>
-              <div v-if="createForm.is_auto_replenish" class="space-y-3">
-                <div><label class="block text-xs font-bold text-theme-light-muted mb-1">Сумма в месяц</label><input v-model.number="createForm.auto_replenish_amount" type="number" step="any" min="1" required class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border rounded-xl p-2.5 text-sm font-mono" /></div>
-                <div><label class="block text-xs font-bold text-theme-light-muted mb-1">Число месяца списания (1-31)</label><input v-model.number="createForm.auto_replenish_day" type="number" min="1" max="31" required class="w-full bg-white dark:bg-theme-dark-card border border-theme-light-border rounded-xl p-2.5 text-sm" /></div>
-              </div>
-            </div>
-            <div class="flex justify-end gap-2 pt-2"><button type="button" @click="showModal = false" class="px-4 py-2 text-xs font-bold rounded-xl border hover:bg-slate-100 transition">Отмена</button><button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary text-white rounded-xl shadow-md">Создать</button></div>
-          </form>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Модалка автопополнения -->
-    <Teleport to="body">
-      <div v-if="autoConfigTarget" @click.self="autoConfigTarget = null" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-        <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
-          <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-1">Включить автопополнение</h3>
-          <p class="text-xs text-theme-light-muted mb-4">Для копилки "{{ autoConfigTarget.name }}"</p>
-          <form @submit.prevent="submitEnableAuto" class="space-y-4">
-            <div>
-              <label class="block text-xs font-bold text-theme-light-muted mb-1">Сумма списания ({{ settings.getSymbol(autoConfigTarget.currency) }})</label>
-              <input v-model.number="autoConfigForm.amount" type="number" step="any" min="1" required class="w-full bg-white dark:bg-theme-dark-card border rounded-xl p-2.5 text-sm font-mono font-bold" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-theme-light-muted mb-1">Число месяца списания (1-31)</label>
-              <input v-model.number="autoConfigForm.day" type="number" min="1" max="31" required class="w-full bg-white dark:bg-theme-dark-card border rounded-xl p-2.5 text-sm font-mono font-bold" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-theme-light-muted mb-1">Счёт для списания</label>
-              <CustomSelect v-model="autoConfigForm.account_id" :options="accountOptions" />
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-              <button type="button" @click="autoConfigTarget = null" class="px-4 py-2 text-xs font-bold rounded-xl border hover:bg-slate-100 transition">Отмена</button>
-              <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary text-white rounded-xl shadow-md">Сохранить и включить</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Модалка пополнения -->
-    <Teleport to="body">
-      <div v-if="depositTarget" @click.self="depositTarget = null" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-        <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
-          <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-4">Пополнить "{{ depositTarget.name }}"</h3>
-          <form @submit.prevent="submitDeposit" class="space-y-4">
-            <div>
-              <label class="block text-xs font-bold text-theme-light-muted mb-1">Сумма и валюта взноса</label>
-              <div class="flex gap-2">
-                <input v-model.number="depositForm.amount" type="number" step="any" min="0.01" required placeholder="0.00" class="flex-1 bg-white dark:bg-theme-dark-card border rounded-xl p-2.5 text-sm font-mono font-bold" />
-                <div class="w-24 shrink-0">
-                  <CustomSelect v-model="depositForm.currency" :options="symbolCurrencyOptions" size="md" />
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-theme-light-muted mb-1">Списать со счёта</label>
-              <CustomSelect v-model="depositForm.account_id" :options="accountOptions" />
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-              <button type="button" @click="depositTarget = null" class="px-4 py-2 text-xs font-bold rounded-xl border hover:bg-slate-100 transition">Отмена</button>
-              <button type="submit" class="px-4 py-2 text-xs font-bold bg-theme-accent-primary text-white rounded-xl shadow-md">Внести</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Модалка отсрочки -->
-    <Teleport to="body">
-      <div v-if="snoozeTarget" @click.self="snoozeTarget = null" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-        <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
-          <h3 class="text-base font-black text-slate-800 dark:text-purple-100">Отсрочить пополнение</h3>
-          <p class="text-xs text-theme-light-muted">Плановое пополнение копилки "{{ snoozeTarget.name }}" назначено на {{ snoozeTarget.auto_replenish_day }}-е число.</p>
-
-          <div>
-            <label class="block text-xs font-bold text-theme-light-muted mb-1.5">Выбрать новую дату пополнения</label>
-            <CustomDatePicker v-model="snoozeDateInput" placeholder="Выберите дату" />
-          </div>
-
-          <div class="flex flex-col gap-2 pt-2">
-            <button @click="confirmSnoozeDate" class="w-full py-2.5 text-xs font-bold bg-theme-accent-primary hover:bg-theme-accent-hover text-white rounded-xl shadow-md transition">
-              Перенести на выбранную дату
-            </button>
-            <button @click="confirmSkipMonth" class="w-full py-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-md transition">
-              Пропустить пополнение в этом месяце
-            </button>
-            <button @click="snoozeTarget = null" class="w-full py-2 text-xs font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition">
-              Отмена
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Модалка удаления копилки -->
-    <Teleport to="body">
-      <div v-if="deleteTarget" @click.self="deleteTarget = null" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-        <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border rounded-2xl shadow-2xl w-full max-w-sm p-6">
-          <h3 class="text-lg font-black text-slate-800 dark:text-purple-100 mb-2">Разбить копилку?</h3>
-          <p class="text-sm text-theme-light-muted mb-4">Накопленные {{ deleteTarget.current_amount }} {{ settings.getSymbol(deleteTarget.currency) }} будут зачислены на выбранный счёт.</p>
-          <form @submit.prevent="confirmDelete">
-            <div v-if="deleteTarget.current_amount > 0" class="mb-4 text-left">
-              <label class="block text-xs font-bold text-theme-light-muted mb-1">Куда зачислить деньги?</label>
-              <CustomSelect v-model="deleteTargetAccount" :options="accountOptions" required />
-            </div>
-            <div class="flex justify-center gap-3">
-              <button type="button" @click="deleteTarget = null" class="px-5 py-2.5 text-sm font-bold rounded-xl border hover:bg-slate-100 transition">Отмена</button>
-              <button type="submit" class="px-5 py-2.5 text-sm font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-md">Разбить</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </Teleport>
+    <!-- Модалки вынесены в отдельные компоненты -->
+    <PiggyCreateModal :show="showModal" :form="createForm" :accountOptions="accountOptions" :currencyOptions="symbolCurrencyOptions" @close="showModal = false" @submit="createPiggy" />
+    <PiggyDepositModal :target="depositTarget" :form="depositForm" :currencyOptions="symbolCurrencyOptions" :accountOptions="accountOptions" @close="depositTarget = null" @submit="submitDeposit" />
+    <PiggyAutoModal :target="autoConfigTarget" :form="autoConfigForm" :accountOptions="accountOptions" @close="autoConfigTarget = null" @submit="submitEnableAuto" />
+    <PiggySnoozeModal :target="snoozeTarget" v-model:snoozeDate="snoozeDateInput" @close="snoozeTarget = null" @confirm-date="confirmSnoozeDate" @confirm-skip="confirmSkipMonth" />
+    <PiggyDeleteModal :target="deleteTarget" v-model:targetAccountId="deleteTargetAccount" :accountOptions="accountOptions" @close="deleteTarget = null" @confirm="confirmDelete" />
   </div>
 </template>
 
@@ -213,8 +83,13 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { Plus } from 'lucide-vue-next';
 import api from '@/api';
 import { useSettingsStore } from '@/stores/settings';
-import CustomSelect from '@/components/CustomSelect.vue';
-import CustomDatePicker from '@/components/CustomDatePicker.vue';
+import { formatDate } from '@/utils/formatters';
+
+import PiggyCreateModal from './piggy/PiggyCreateModal.vue';
+import PiggyDepositModal from './piggy/PiggyDepositModal.vue';
+import PiggyAutoModal from './piggy/PiggyAutoModal.vue';
+import PiggySnoozeModal from './piggy/PiggySnoozeModal.vue';
+import PiggyDeleteModal from './piggy/PiggyDeleteModal.vue';
 
 const settings = useSettingsStore();
 const piggyBanks = ref([]);
@@ -276,32 +151,21 @@ function openDepositModal(pb) {
 
 async function submitDeposit() {
   if (!depositForm.amount || depositForm.amount <= 0 || !depositForm.account_id) return;
-  await api.post(`/piggy-banks/${depositTarget.value.id}/deposit`, {
-    amount: depositForm.amount,
-    account_id: depositForm.account_id,
-    currency: depositForm.currency
-  });
+  await api.post(`/piggy-banks/${depositTarget.value.id}/deposit`, depositForm);
   depositTarget.value = null;
   await loadData();
 }
 
 function handleAutoClick(pb) {
-  if (pb.is_auto_replenish) {
-    disableAuto(pb);
-  } else {
-    openAutoConfigModal(pb);
-  }
+  if (pb.is_auto_replenish) disableAuto(pb);
+  else openAutoConfigModal(pb);
 }
 
 async function disableAuto(pb) {
   try {
-    await api.post(`/piggy-banks/${pb.id}/auto-replenish`, {
-      is_auto_replenish: false
-    });
+    await api.post(`/piggy-banks/${pb.id}/auto-replenish`, { is_auto_replenish: false });
     await loadData();
-  } catch (err) {
-    alert(err.response?.data?.detail || 'Ошибка отключения автопополнения');
-  }
+  } catch (err) { alert(err.response?.data?.detail || 'Ошибка отключения автопополнения'); }
 }
 
 function openAutoConfigModal(pb) {
@@ -322,19 +186,14 @@ async function submitEnableAuto() {
     });
     autoConfigTarget.value = null;
     await loadData();
-  } catch (err) {
-    alert(err.response?.data?.detail || 'Ошибка включения автопополнения');
-  }
+  } catch (err) { alert(err.response?.data?.detail || 'Ошибка включения автопополнения'); }
 }
 
 function openSnoozeModal(pb) {
   snoozeTarget.value = pb;
   const targetDate = new Date();
   targetDate.setDate(targetDate.getDate() + 3);
-  const y = targetDate.getFullYear();
-  const m = String(targetDate.getMonth() + 1).padStart(2, '0');
-  const d = String(targetDate.getDate()).padStart(2, '0');
-  snoozeDateInput.value = `${y}-${m}-${d}`;
+  snoozeDateInput.value = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 }
 
 async function confirmSnoozeDate() {
@@ -346,21 +205,15 @@ async function confirmSnoozeDate() {
     });
     snoozeTarget.value = null;
     await loadData();
-  } catch (err) {
-    alert(err.response?.data?.detail || 'Ошибка отсрочки пополнения');
-  }
+  } catch (err) { alert(err.response?.data?.detail || 'Ошибка отсрочки пополнения'); }
 }
 
 async function confirmSkipMonth() {
   try {
-    await api.post(`/piggy-banks/${snoozeTarget.value.id}/snooze`, {
-      skip_current_month: true
-    });
+    await api.post(`/piggy-banks/${snoozeTarget.value.id}/snooze`, { skip_current_month: true });
     snoozeTarget.value = null;
     await loadData();
-  } catch (err) {
-    alert(err.response?.data?.detail || 'Ошибка пропуска месяца');
-  }
+  } catch (err) { alert(err.response?.data?.detail || 'Ошибка пропуска месяца'); }
 }
 
 function askDelete(pb) {

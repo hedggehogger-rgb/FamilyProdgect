@@ -154,10 +154,15 @@ def get_transactions(
 @router.delete("/{transaction_id}", response_model=ActionStatusResponse)
 def delete_transaction(
     transaction_id: str,
+    target_account_id: Optional[str] = Query(default=None),
     current_user: UserModel = Depends(get_current_user),
     svc: AccountService = Depends(get_account_service),
 ):
-    svc.delete_transaction(transaction_id, current_user.family_group_id)
+    svc.delete_transaction(
+        transaction_id,
+        current_user.family_group_id,
+        target_account_id=target_account_id,
+    )
     return ActionStatusResponse(
         message=f"Транзакция {transaction_id} удалена",
         id=transaction_id,

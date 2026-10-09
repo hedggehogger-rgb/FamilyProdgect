@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from app.infrastructure.database import SessionLocal, UserModel, get_db
+from app.infrastructure.database import get_db, UserModel
 from app.infrastructure.exchange_rate import ApiExchangeRateProvider
 from app.infrastructure.repositories import (
     PostgresAccountRepository,
@@ -17,7 +17,10 @@ from app.services.currency_service import CurrencyConverter
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> UserModel:
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> UserModel:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Неверный или просроченный токен авторизации",
@@ -31,14 +34,10 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> UserModel:
     if not user_id:
         raise credentials_exception
 
-    db: Session = SessionLocal()
-    try:
-        user = db.query(UserModel).filter(UserModel.id == user_id).first()
-        if not user:
-            raise credentials_exception
-        return user
-    finally:
-        db.close()
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise credentials_exception
+    return user
 
 
 # 1. Провайдеры и конвертер валют
@@ -90,7 +89,7 @@ get_category_repository = get_category_repo
 
 
 def get_transaction_repo() -> PostgresTransactionRepository:
-    return transaction_repository #uuuuuu
+    return transaction_repository
 
 
 get_transaction_repository = get_transaction_repo

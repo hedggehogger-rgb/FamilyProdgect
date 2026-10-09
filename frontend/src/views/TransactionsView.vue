@@ -3,192 +3,214 @@
     <!-- Шапка календаря -->
     <div class="flex flex-wrap items-center justify-between gap-4 bg-theme-light-surface dark:bg-theme-dark-surface p-4 rounded-2xl border border-theme-light-border dark:border-theme-dark-border shadow-sm">
       <div class="flex items-center gap-3">
-        <button @click="prevMonth" class="p-2 rounded-xl hover:bg-theme-light-hover dark:hover:bg-theme-dark-hover transition"><ChevronLeft class="w-5 h-5 text-purple-600 dark:text-purple-400" /></button>
-        <span class="text-base font-black text-slate-800 dark:text-purple-100 min-w-36 text-center">{{ monthNames[currentMonth - 1] }} {{ currentYear }}</span>
-        <button @click="nextMonth" class="p-2 rounded-xl hover:bg-theme-light-hover dark:hover:bg-theme-dark-hover transition"><ChevronRight class="w-5 h-5 text-purple-600 dark:text-purple-400" /></button>
+        <button @click="prevMonth" class="p-2 rounded-xl hover:bg-theme-light-hover dark:hover:bg-theme-dark-hover transition">
+          <ChevronLeft class="w-5 h-5 text-purple-600 dark:text-purple-400" />
+        </button>
+        <span class="text-base font-black text-slate-800 dark:text-purple-100 min-w-36 text-center">
+          {{ MONTH_NAMES[currentMonth - 1] }} {{ currentYear }}
+        </span>
+        <button @click="nextMonth" class="p-2 rounded-xl hover:bg-theme-light-hover dark:hover:bg-theme-dark-hover transition">
+          <ChevronRight class="w-5 h-5 text-purple-600 dark:text-purple-400" />
+        </button>
       </div>
 
       <div class="flex gap-2">
-        <button @click="openPlanModal" class="bg-white dark:bg-theme-dark-card text-slate-700 dark:text-purple-200 border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-50 dark:hover:bg-theme-dark-hover text-xs px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-sm"><Target class="w-4 h-4" /> Запланировать расходы</button>
-        <button @click="openAnalyticsModal" class="bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-800 hover:bg-purple-200 text-xs px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-sm"><BarChart3 class="w-4 h-4" /> Аналитика за {{ monthNames[currentMonth - 1] }}</button>
+        <button @click="openPlanModal" class="bg-white dark:bg-theme-dark-card text-slate-700 dark:text-purple-200 border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-50 dark:hover:bg-theme-dark-hover text-xs px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-sm">
+          <Target class="w-4 h-4" /> Запланировать расходы
+        </button>
+        <button @click="showAnalyticsModal = true" class="bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-800 hover:bg-purple-200 text-xs px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-sm">
+          <BarChart3 class="w-4 h-4" /> Аналитика за {{ MONTH_NAMES[currentMonth - 1] }}
+        </button>
       </div>
     </div>
 
     <!-- Календарная сетка -->
     <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl p-4 shadow-sm">
-      <div class="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-black uppercase text-theme-light-muted dark:text-theme-dark-muted"><div v-for="w in weekDays" :key="w">{{ w }}</div></div>
+      <div class="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-black uppercase text-theme-light-muted dark:text-theme-dark-muted">
+        <div v-for="w in WEEK_DAYS" :key="w">{{ w }}</div>
+      </div>
       <div class="grid grid-cols-7 gap-2">
-        <div v-for="(cell, idx) in calendarCells" :key="idx" @click="cell.isCurrentMonth && selectDay(cell.day)" :class="[cell.isCurrentMonth ? 'bg-theme-light-card dark:bg-theme-dark-card border-theme-light-border dark:border-theme-dark-border cursor-pointer hover:border-purple-500 relative overflow-hidden' : 'opacity-25 pointer-events-none border-transparent', selectedDay === cell.day ? 'ring-2 ring-purple-600' : '']" class="border rounded-xl min-h-24 p-2 flex flex-col justify-between transition-all">
+        <div
+          v-for="(cell, idx) in calendarCells"
+          :key="idx"
+          @click="cell.isCurrentMonth && (selectedDay = cell.day)"
+          :class="[
+            cell.isCurrentMonth
+              ? 'bg-theme-light-card dark:bg-theme-dark-card border-theme-light-border dark:border-theme-dark-border cursor-pointer hover:border-purple-500 relative overflow-hidden'
+              : 'opacity-25 pointer-events-none border-transparent',
+            selectedDay === cell.day ? 'ring-2 ring-purple-600' : ''
+          ]"
+          class="border rounded-xl min-h-24 p-2 flex flex-col justify-between transition-all"
+        >
           <div class="flex justify-between items-start z-10">
-            <span class="text-xs font-bold" :class="cell.isToday ? 'bg-theme-accent-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-slate-700 dark:text-purple-300'">{{ cell.day }}</span>
+            <span class="text-xs font-bold" :class="cell.isToday ? 'bg-theme-accent-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-slate-700 dark:text-purple-300'">
+              {{ cell.day }}
+            </span>
             <div v-if="cell.hasPlanned" class="w-2 h-2 rounded-full bg-purple-500 animate-pulse" title="Есть запланированные операции"></div>
           </div>
           <div v-if="cell.isCurrentMonth && cell.totals" class="space-y-1 font-mono text-[11px] leading-tight mt-1 z-10 relative">
-            <p v-if="cell.totals.income > 0" class="text-emerald-600 font-bold truncate">+{{ Math.round(cell.totals.income) }} {{ settings.getSymbol(settings.baseCurrency) }}</p>
-            <p v-if="cell.totals.expense > 0" class="text-rose-600 font-bold truncate">-{{ Math.round(cell.totals.expense) }} {{ settings.getSymbol(settings.baseCurrency) }}</p>
+            <p v-if="cell.totals.income > 0" class="text-emerald-600 font-bold truncate">
+              +{{ Math.round(cell.totals.income) }} {{ settings.getSymbol(settings.baseCurrency) }}
+            </p>
+            <p v-if="cell.totals.expense > 0" class="text-rose-600 font-bold truncate">
+              -{{ Math.round(cell.totals.expense) }} {{ settings.getSymbol(settings.baseCurrency) }}
+            </p>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Модалка операций за день -->
-  <Teleport to="body">
-    <div v-if="selectedDay" @click.self="selectedDay = null" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-lg p-6 flex flex-col max-h-[85vh]">
-        <div class="flex justify-between items-center mb-4 pb-2 border-b border-theme-light-border dark:border-theme-dark-border"><h3 class="font-black text-base text-slate-800 dark:text-purple-100">Операции за {{ selectedDay }} {{ monthNames[currentMonth - 1] }}</h3><button @click="selectedDay = null" class="text-xs font-bold px-2 py-1 rounded hover:bg-purple-100 dark:hover:bg-theme-dark-hover">Закрыть</button></div>
-        <div class="flex-1 overflow-y-auto divide-y divide-theme-light-border dark:divide-theme-dark-border">
-          <div v-if="dayTransactions.length === 0" class="py-8 text-center text-xs text-theme-light-muted">В этот день операций нет</div>
-          <div v-for="t in dayTransactions" :key="t.id" class="py-3 flex justify-between items-center text-sm" :class="{'opacity-75 bg-purple-50/50 dark:bg-purple-950/20 px-2 rounded-xl': t.isPlanned || t.is_executed === false}">
-            <div>
-              <p class="font-bold text-slate-800 dark:text-purple-200">
-                <span v-if="t.is_executed === false" class="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded font-black mr-1 shadow-sm">ОТЛОЖЕН</span>
-                <span v-else-if="t.isPlanned" class="text-[10px] bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-1.5 py-0.5 rounded font-black mr-1">ПЛАН</span>
-                {{ translateType(t.type) }}
-              </p>
-              <p class="text-xs text-theme-light-muted">{{ t.note || 'Без описания' }} <span v-if="!t.isPlanned">• {{ t.author === 'HUSBAND' ? 'Любими Муж' : 'КошкоЖена' }}</span></p>
-            </div>
-            <div class="text-right">
-              <p class="font-mono font-bold" :class="isIncomeType(t.type) ? 'text-emerald-500' : 'text-rose-500'">{{ isIncomeType(t.type) ? '+' : '-' }}{{ t.amount }} {{ settings.getSymbol(t.currency) }}</p>
-              <button v-if="!t.isPlanned" @click="askDelete(t.id)" class="text-[11px] text-red-500 hover:underline">Удалить</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+    <!-- Модальные окна -->
+    <DayTransactionsModal
+      :day="selectedDay"
+      :monthName="MONTH_NAMES[currentMonth - 1]"
+      :transactions="dayTransactions"
+      @close="selectedDay = null"
+      @ask-delete="askDelete"
+    />
 
-  <!-- Модалка Планирования Расходов -->
-  <Teleport to="body">
-    <div v-if="showPlanModal" @click.self="showPlanModal = false" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-xl p-6 flex flex-col max-h-[85vh]">
-        <div class="flex justify-between items-center mb-4"><h3 class="font-black text-lg text-slate-800 dark:text-purple-100">План расходов: {{ monthNames[currentMonth - 1] }} {{ currentYear }}</h3><button @click="showPlanModal = false" class="text-xs font-bold px-2 py-1">Закрыть</button></div>
-        <div v-if="isForecastLoading" class="flex-1 flex justify-center items-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div></div>
-        <div v-else class="flex-1 overflow-y-auto space-y-3 pr-2">
-          <div v-for="cat in expenseCategories" :key="cat.id" class="p-3.5 bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl flex justify-between items-center">
-            <div>
-              <p class="font-bold text-sm text-slate-800 dark:text-purple-200">{{ cat.name }}</p>
-              <p class="text-[11px] text-theme-light-muted">Средний расход: {{ forecasts[cat.id]?.average_monthly_expense || 0 }} {{ settings.getSymbol(settings.baseCurrency) }}</p>
-              <p class="text-[11px] text-purple-600 font-semibold">Уже потрачено: {{ getSpentInCurrentMonthForCat(cat.id) }} {{ settings.getSymbol(settings.baseCurrency) }}</p>
-            </div>
-            <div class="text-right">
-              <span class="text-xs block text-theme-light-muted">Ожидание</span>
-              <span class="text-sm font-black font-mono text-rose-500 bg-rose-50 dark:bg-rose-950/40 px-2 py-1 rounded-lg">
-                {{ cat.default_amount || forecasts[cat.id]?.predicted_next_month || '0.00' }} {{ settings.getSymbol(settings.baseCurrency) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+    <BudgetPlanModal
+      :show="showPlanModal"
+      :loading="isForecastLoading"
+      :categories="expenseCategories"
+      :forecasts="forecasts"
+      :monthName="MONTH_NAMES[currentMonth - 1]"
+      :year="currentYear"
+      :getSpentForCat="getSpentInCurrentMonthForCat"
+      @close="showPlanModal = false"
+    />
 
-  <!-- Модалка Аналитики за выбранный месяц -->
-  <Teleport to="body">
-    <div v-if="showAnalyticsModal" @click.self="showAnalyticsModal = false" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-2xl p-6 flex flex-col max-h-[88vh]">
-        <div class="flex justify-between items-center mb-4 pb-2 border-b border-theme-light-border dark:border-theme-dark-border">
-          <h3 class="font-black text-lg text-slate-800 dark:text-purple-100">📊 Аналитика: {{ monthNames[currentMonth - 1] }} {{ currentYear }}</h3>
-          <button @click="showAnalyticsModal = false" class="text-xs font-bold px-2 py-1">Закрыть</button>
-        </div>
+    <MonthAnalyticsModal
+      :show="showAnalyticsModal"
+      :monthName="MONTH_NAMES[currentMonth - 1]"
+      :year="currentYear"
+      :totalIncome="monthTotalIncome"
+      :totalExpense="monthTotalExpense"
+      :savings="monthSavings"
+      :categoryStats="categoryStats"
+      @close="showAnalyticsModal = false"
+      @select-category="detailCategory = $event"
+    />
 
-        <div class="flex-1 overflow-y-auto space-y-6 pr-2">
-          <div class="grid grid-cols-3 gap-3">
-            <div class="p-4 rounded-xl bg-purple-50 dark:bg-theme-dark-card border border-purple-200 dark:border-purple-900/60 text-center">
-              <span class="text-xs text-theme-light-muted font-bold">Доходы</span>
-              <p class="text-base font-black text-emerald-500 mt-1 font-mono">+{{ monthTotalIncome }} {{ settings.getSymbol(settings.baseCurrency) }}</p>
-            </div>
-            <div class="p-4 rounded-xl bg-purple-50 dark:bg-theme-dark-card border border-purple-200 dark:border-purple-900/60 text-center">
-              <span class="text-xs text-theme-light-muted font-bold">Расходы</span>
-              <p class="text-base font-black text-rose-500 mt-1 font-mono">-{{ monthTotalExpense }} {{ settings.getSymbol(settings.baseCurrency) }}</p>
-            </div>
-            <div class="p-4 rounded-xl bg-purple-50 dark:bg-theme-dark-card border border-purple-200 dark:border-purple-900/60 text-center">
-              <span class="text-xs text-theme-light-muted font-bold">Остаток</span>
-              <p class="text-base font-black mt-1 font-mono" :class="monthSavings >= 0 ? 'text-purple-600 dark:text-purple-300' : 'text-rose-500'">
-                {{ monthSavings }} {{ settings.getSymbol(settings.baseCurrency) }}
-              </p>
-            </div>
-          </div>
+    <CategoryDetailModal
+      :category="detailCategory"
+      :monthName="MONTH_NAMES[currentMonth - 1]"
+      :transactions="categoryTransactions"
+      @close="detailCategory = null"
+    />
 
-          <div>
-            <h4 class="text-xs font-bold uppercase tracking-wider text-theme-light-muted mb-3">Распределение трат по категориям</h4>
-            <div v-if="categoryStats.length === 0" class="text-xs text-theme-light-muted italic text-center py-4">В этом месяце расходов не зафиксировано</div>
-            <div v-else class="space-y-3">
-              <div
-                v-for="item in categoryStats"
-                :key="item.cat.id"
-                @click="openCategoryDetail(item.cat)"
-                class="p-3 bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl cursor-pointer hover:border-purple-400 transition"
+    <!-- Модальное окно удаления операции с проверкой наличия счёта -->
+    <Teleport to="body">
+      <div
+        v-if="deleteTxId"
+        @click.self="cancelDelete"
+        class="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4 z-[70]"
+      >
+        <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-md p-6">
+
+          <!-- Случай 1: Счёт был удалён -->
+          <div v-if="isAccountMissing" class="text-center">
+            <div class="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3 shadow-sm">
+              <AlertTriangle class="w-6 h-6" />
+            </div>
+
+            <h3 class="text-base font-black text-slate-800 dark:text-purple-100 mb-2">
+              Счёт операции был удалён
+            </h3>
+
+            <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mb-4 leading-relaxed">
+              Счёт, с которого списывалась эта операция, больше не существует.
+              Куда зачислить отменяемые средства
+              <strong class="font-mono text-purple-600 dark:text-purple-300">
+                ({{ formatMoney(txToDelete?.amount) }} {{ settings.getSymbol(txToDelete?.currency) }})
+              </strong>?
+            </p>
+
+            <div class="text-left mb-6">
+              <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1.5">
+                Выберите действующий счёт для возврата:
+              </label>
+              <CustomSelect
+                v-model="selectedRefundAccountId"
+                :options="accountOptions"
+                placeholder="Выберите счёт"
+              />
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-end gap-2 text-xs font-bold">
+              <button
+                type="button"
+                @click="cancelDelete"
+                class="px-4 py-2.5 rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition text-slate-700 dark:text-purple-200"
               >
-                <div class="flex justify-between items-center text-xs mb-1">
-                  <span class="font-bold flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.cat.color }"></span>
-                    {{ item.cat.name }}
-                  </span>
-                  <div class="flex items-center gap-3 font-mono">
-                    <span class="font-bold">{{ item.spent }} {{ settings.getSymbol(settings.baseCurrency) }}</span>
-                    <span class="text-purple-600 font-black">({{ item.pct }}%)</span>
-                  </div>
-                </div>
-                <div class="w-full bg-slate-100 dark:bg-purple-950 h-2 rounded-full overflow-hidden">
-                  <div class="h-full rounded-full transition-all" :style="{ width: item.pct + '%', backgroundColor: item.cat.color }"></div>
-                </div>
-                <div class="flex justify-between items-center text-[10px] mt-1.5 font-bold">
-                  <span v-if="item.limit" :class="item.limit.is_exceeded ? 'text-red-500' : 'text-emerald-600'">
-                    {{ item.limit.is_exceeded ? 'Лимит превышен!' : 'Лимит соблюдён' }} (Лимит: {{ item.limit.limit_amount }} {{ settings.getSymbol(item.limit.currency) }})
-                  </span>
-                  <span v-else class="text-theme-light-muted">Без лимита</span>
-                  <span class="text-purple-500 font-normal">Посмотреть операции →</span>
-                </div>
-              </div>
+                Отмена
+              </button>
+              <button
+                type="button"
+                @click="confirmDelete(false)"
+                class="px-4 py-2.5 rounded-xl border border-rose-300 dark:border-rose-900/60 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+              >
+                Удалить без зачисления
+              </button>
+              <button
+                type="button"
+                @click="confirmDelete(true)"
+                :disabled="!selectedRefundAccountId"
+                class="px-4 py-2.5 bg-theme-accent-primary hover:bg-theme-accent-hover text-white rounded-xl shadow-md transition disabled:opacity-50"
+              >
+                Зачислить и удалить
+              </button>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </Teleport>
 
-  <!-- Модалка транзакций по категории -->
-  <Teleport to="body">
-    <div v-if="detailCategory" @click.self="detailCategory = null" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-[60]">
-      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-lg p-6 flex flex-col max-h-[80vh]">
-        <div class="flex justify-between items-center mb-4 pb-2 border-b border-theme-light-border dark:border-theme-dark-border">
-          <h3 class="font-black text-base text-slate-800 dark:text-purple-100">Операции категории "{{ detailCategory.name }}" за {{ monthNames[currentMonth - 1] }}</h3>
-          <button @click="detailCategory = null" class="text-xs font-bold px-2 py-1">Закрыть</button>
-        </div>
-        <div class="flex-1 overflow-y-auto divide-y divide-theme-light-border dark:divide-theme-dark-border">
-          <div v-if="categoryTransactions.length === 0" class="py-8 text-center text-xs text-theme-light-muted">Операций нет</div>
-          <div v-for="t in categoryTransactions" :key="t.id" class="py-2.5 flex justify-between items-center text-xs">
-            <div>
-              <p class="font-bold text-slate-800 dark:text-purple-200">{{ t.note || 'Без описания' }}</p>
-              <p class="text-[10px] text-theme-light-muted">{{ new Date(t.date).toLocaleDateString('ru-RU') }} • {{ t.author === 'HUSBAND' ? 'Любими Муж' : 'КошкоЖена' }}</p>
+          <!-- Случай 2: Счёт существует (стандартное удаление) -->
+          <div v-else class="text-center">
+            <h3 class="text-lg font-black text-slate-800 dark:text-purple-100 mb-2">
+              Удалить операцию?
+            </h3>
+            <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mb-6">
+              Средства будут возвращены на счёт
+              <strong class="text-purple-600 dark:text-purple-300">
+                "{{ getAccountName(txToDelete?.account_id) }}"
+              </strong>.
+            </p>
+
+            <div class="flex justify-center gap-3">
+              <button
+                type="button"
+                @click="cancelDelete"
+                class="px-5 py-2.5 text-xs font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                @click="confirmDelete(true)"
+                class="px-5 py-2.5 text-xs font-bold bg-rose-500 hover:bg-rose-600 text-white rounded-xl shadow-md transition"
+              >
+                Удалить
+              </button>
             </div>
-            <span class="font-mono font-bold text-rose-500 text-sm">-{{ t.amount }} {{ settings.getSymbol(t.currency) }}</span>
           </div>
-        </div>
-      </div>
-    </div>
-  </Teleport>
 
-  <!-- Модалка удаления -->
-  <Teleport to="body">
-    <div v-if="deleteTxId" @click.self="deleteTxId = null" class="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-[70]">
-      <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
-        <h3 class="text-lg font-black text-slate-800 dark:text-purple-100 mb-2">Удалить операцию?</h3>
-        <div class="flex justify-center gap-3 mt-4">
-          <button @click="deleteTxId = null" class="px-5 py-2.5 text-sm font-bold rounded-xl border border-theme-light-border dark:border-theme-dark-border hover:bg-slate-100 dark:hover:bg-theme-dark-hover transition">Отмена</button>
-          <button @click="confirmDelete" class="px-5 py-2.5 text-sm font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl transition">Удалить</button>
         </div>
       </div>
-    </div>
-  </Teleport>
+    </Teleport>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { ChevronLeft, ChevronRight, BarChart3, Target } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, BarChart3, Target, AlertTriangle } from 'lucide-vue-next';
 import api from '@/api';
 import { useSettingsStore } from '@/stores/settings';
+import { MONTH_NAMES, WEEK_DAYS, getExactDay, getExactMonth, getExactYear } from '@/utils/formatters';
+import CustomSelect from '@/components/CustomSelect.vue';
+
+import DayTransactionsModal from './transactions/DayTransactionsModal.vue';
+import BudgetPlanModal from './transactions/BudgetPlanModal.vue';
+import MonthAnalyticsModal from './transactions/MonthAnalyticsModal.vue';
+import CategoryDetailModal from './transactions/CategoryDetailModal.vue';
 
 const settings = useSettingsStore();
 const now = new Date();
@@ -198,7 +220,11 @@ const selectedDay = ref(null);
 const showAnalyticsModal = ref(false);
 const showPlanModal = ref(false);
 const detailCategory = ref(null);
+
+// Состояния удаления
 const deleteTxId = ref(null);
+const txToDelete = ref(null);
+const selectedRefundAccountId = ref('');
 
 const transactions = ref([]);
 const categories = ref([]);
@@ -208,40 +234,32 @@ const limitsMap = ref({});
 const forecasts = ref({});
 const isForecastLoading = ref(false);
 
-const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-
 function isIncomeType(type) { return type.startsWith('INCOME'); }
-function translateType(type) {
-  const map = {
-    EXPENSE_PLANNED: 'Плановый расход',
-    EXPENSE_IMPULSE: 'Внеплановый расход',
-    INCOME_PLANNED: 'Плановый доход',
-    INCOME_UNPLANNED: 'Внеплановый доход',
-    INCOME: 'Доход',
-    INVESTMENT: 'Инвестиции',
-    TRANSFER: 'Перевод'
-  };
-  return map[type] || type;
-}
-
-function getExactDay(isoString) {
-  if (!isoString) return 0;
-  const d = isoString.split('T')[0].split(' ')[0].split('-');
-  return parseInt(d[2], 10);
-}
-function getExactMonth(isoString) {
-  if (!isoString) return 0;
-  const d = isoString.split('T')[0].split(' ')[0].split('-');
-  return parseInt(d[1], 10);
-}
-function getExactYear(isoString) {
-  if (!isoString) return 0;
-  const d = isoString.split('T')[0].split(' ')[0].split('-');
-  return parseInt(d[0], 10);
-}
 
 const expenseCategories = computed(() => categories.value.filter(c => c.group === 'EXPENSE'));
+
+const accountOptions = computed(() =>
+  accounts.value.map(a => ({
+    label: `${a.name} (${settings.getSymbol(a.currency)})`,
+    value: a.id
+  }))
+);
+
+const isAccountMissing = computed(() => {
+  if (!txToDelete.value) return false;
+  return !accounts.value.some(a => a.id === txToDelete.value.account_id);
+});
+
+function getAccountName(id) {
+  if (!id) return 'Неизвестный счёт';
+  const acc = accounts.value.find(a => a.id === id);
+  return acc ? acc.name : 'Удалённый счёт';
+}
+
+function formatMoney(val) {
+  if (val === null || val === undefined || isNaN(val)) return '0';
+  return Number(val).toLocaleString('ru-RU');
+}
 
 const plannedTransactions = computed(() => {
   const planned = [];
@@ -346,8 +364,7 @@ const dayTransactions = computed(() => {
 const monthTotalIncome = computed(() => {
   let sum = 0;
   transactions.value.forEach(t => {
-    const executed = t.is_executed !== false;
-    if (isIncomeType(t.type) && executed) sum += settings.convert(t.amount, t.currency);
+    if (isIncomeType(t.type) && t.is_executed !== false) sum += settings.convert(t.amount, t.currency);
   });
   return Math.round(sum);
 });
@@ -355,8 +372,7 @@ const monthTotalIncome = computed(() => {
 const monthTotalExpense = computed(() => {
   let sum = 0;
   transactions.value.forEach(t => {
-    const executed = t.is_executed !== false;
-    if (!isIncomeType(t.type) && t.type !== 'TRANSFER' && executed) sum += settings.convert(t.amount, t.currency);
+    if (!isIncomeType(t.type) && t.type !== 'TRANSFER' && t.is_executed !== false) sum += settings.convert(t.amount, t.currency);
   });
   return Math.round(sum);
 });
@@ -369,17 +385,15 @@ const categoryStats = computed(() => {
   expenseCategories.value.forEach(cat => {
     let spent = 0;
     transactions.value.forEach(t => {
-      const executed = t.is_executed !== false;
-      if (t.category_id === cat.id && !isIncomeType(t.type) && executed) {
+      if (t.category_id === cat.id && !isIncomeType(t.type) && t.is_executed !== false) {
         spent += settings.convert(t.amount, t.currency);
       }
     });
     if (spent > 0) {
-      const pct = Math.min(100, Math.round((spent / totalExp) * 100));
       res.push({
         cat,
         spent: Math.round(spent),
-        pct,
+        pct: Math.min(100, Math.round((spent / totalExp) * 100)),
         limit: limitsMap.value[cat.id] || null
       });
     }
@@ -395,31 +409,22 @@ const categoryTransactions = computed(() => {
 function getSpentInCurrentMonthForCat(catId) {
   let sum = 0;
   transactions.value.forEach(t => {
-    const executed = t.is_executed !== false;
-    if (t.category_id === catId && !isIncomeType(t.type) && executed) {
+    if (t.category_id === catId && !isIncomeType(t.type) && t.is_executed !== false) {
       sum += settings.convert(t.amount, t.currency);
     }
   });
   return Math.round(sum);
 }
 
-function selectDay(d) { selectedDay.value = d; }
 function prevMonth() {
-  if (currentMonth.value === 1) {
-    currentMonth.value = 12;
-    currentYear.value--;
-  } else {
-    currentMonth.value--;
-  }
+  if (currentMonth.value === 1) { currentMonth.value = 12; currentYear.value--; }
+  else { currentMonth.value--; }
   loadMonthData();
 }
+
 function nextMonth() {
-  if (currentMonth.value === 12) {
-    currentMonth.value = 1;
-    currentYear.value++;
-  } else {
-    currentMonth.value++;
-  }
+  if (currentMonth.value === 12) { currentMonth.value = 1; currentYear.value++; }
+  else { currentMonth.value++; }
   loadMonthData();
 }
 
@@ -434,9 +439,6 @@ async function openPlanModal() {
   await Promise.all(promises);
   isForecastLoading.value = false;
 }
-
-function openAnalyticsModal() { showAnalyticsModal.value = true; }
-function openCategoryDetail(cat) { detailCategory.value = cat; }
 
 async function loadMonthData() {
   try {
@@ -470,12 +472,35 @@ async function loadMonthData() {
   }
 }
 
-function askDelete(id) { deleteTxId.value = id; }
-async function confirmDelete() {
-  if (!deleteTxId.value) return;
-  await api.delete(`/transactions/${deleteTxId.value}`);
+function askDelete(id) {
+  deleteTxId.value = id;
+  const tx = transactions.value.find(t => t.id === id);
+  txToDelete.value = tx || null;
+
+  if (accounts.value.length > 0) {
+    selectedRefundAccountId.value = accounts.value[0].id;
+  }
+}
+
+function cancelDelete() {
   deleteTxId.value = null;
-  await loadMonthData();
+  txToDelete.value = null;
+}
+
+async function confirmDelete(withRefund = true) {
+  if (!deleteTxId.value) return;
+  try {
+    let url = `/transactions/${deleteTxId.value}`;
+    if (isAccountMissing.value && withRefund && selectedRefundAccountId.value) {
+      url += `?target_account_id=${selectedRefundAccountId.value}`;
+    }
+
+    await api.delete(url);
+    cancelDelete();
+    await loadMonthData();
+  } catch (err) {
+    alert(err.response?.data?.detail || 'Не удалось удалить операцию');
+  }
 }
 
 onMounted(loadMonthData);
