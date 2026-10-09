@@ -68,6 +68,7 @@ class Transaction:
     to_account_id: Optional[str] = None
     family_group_id: Optional[str] = None
     date: datetime = field(default_factory=datetime.utcnow)
+    is_executed: bool = True  # False для будущих разовых платежей
 
     def __post_init__(self):
         if self.amount <= Decimal("0"):
@@ -90,8 +91,8 @@ class Category:
     day_of_week: Optional[int] = None
     recurrence_month: Optional[int] = None
     color: str = "#8b5cf6"
-    default_amount: Optional[Decimal] = None      # Добавлено
-    default_account_id: Optional[str] = None      # Добавлено
+    default_amount: Optional[Decimal] = None
+    default_account_id: Optional[str] = None
     family_group_id: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
 

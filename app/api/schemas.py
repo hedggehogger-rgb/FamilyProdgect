@@ -79,8 +79,6 @@ class AccountResponseSchema(BaseModel):
     is_investment: bool
 
 
-# ... (остальной код schemas.py)
-
 class CategoryCreateSchema(BaseModel):
     id: Optional[str] = None
     name: str = Field(..., min_length=1, max_length=100)
@@ -92,8 +90,8 @@ class CategoryCreateSchema(BaseModel):
     day_of_week: Optional[int] = None
     recurrence_month: Optional[int] = None
     color: str = "#8b5cf6"
-    default_amount: Optional[Decimal] = None  # Добавлено
-    default_account_id: Optional[str] = None  # Добавлено
+    default_amount: Optional[Decimal] = None
+    default_account_id: Optional[str] = None
 
 
 class CategoryUpdateSchema(BaseModel):
@@ -103,8 +101,8 @@ class CategoryUpdateSchema(BaseModel):
     day_of_week: Optional[int] = None
     recurrence_month: Optional[int] = None
     color: Optional[str] = None
-    default_amount: Optional[Decimal] = None  # Добавлено
-    default_account_id: Optional[str] = None  # Добавлено
+    default_amount: Optional[Decimal] = None
+    default_account_id: Optional[str] = None
 
 
 class CategoryResponseSchema(BaseModel):
@@ -118,12 +116,9 @@ class CategoryResponseSchema(BaseModel):
     day_of_week: Optional[int]
     recurrence_month: Optional[int]
     color: str
-    default_amount: Optional[Decimal] = None  # Добавлено
-    default_account_id: Optional[str] = None  # Добавлено
+    default_amount: Optional[Decimal] = None
+    default_account_id: Optional[str] = None
     created_at: datetime
-
-
-# ... (остальной код schemas.py)
 
 
 class TransactionCreateSchema(BaseModel):
@@ -159,6 +154,7 @@ class TransactionResponseSchema(BaseModel):
     author: Author
     note: str
     date: datetime
+    is_executed: bool = True
 
 
 class MonthlyReportResponseSchema(BaseModel):
@@ -216,9 +212,22 @@ class PiggyBankCreateSchema(BaseModel):
 
 class PiggyBankDepositSchema(BaseModel):
     amount: Decimal = Field(..., gt=0)
-    account_id: str = Field(..., min_length=1) # Новое обязательное поле
+    account_id: str = Field(..., min_length=1)
+    currency: Optional[Currency] = None
     author: Optional[Author] = None
     note: Optional[str] = None
+
+
+class PiggyBankSnoozeSchema(BaseModel):
+    snooze_date: Optional[datetime] = None
+    skip_current_month: bool = False
+
+
+class PiggyBankAutoReplenishToggleSchema(BaseModel):
+    is_auto_replenish: bool
+    auto_replenish_amount: Optional[Decimal] = None
+    auto_replenish_day: Optional[int] = None
+    account_id: Optional[str] = None
 
 
 class PiggyBankNoteCreateSchema(BaseModel):
@@ -245,4 +254,6 @@ class PiggyBankResponseSchema(BaseModel):
     auto_replenish_amount: Decimal
     auto_replenish_day: Optional[int]
     is_completed: bool
+    snoozed_until: Optional[datetime] = None
+    skip_until_month: Optional[str] = None
     created_at: datetime

@@ -97,6 +97,7 @@ class PostgresAccountRepository(BasePostgresRepository, IAccountRepository):
             family_group_id=row.family_group_id,
         )
 
+
 class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
 
     def add(self, category: Category) -> None:
@@ -116,8 +117,8 @@ class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
                 day_of_week=category.day_of_week,
                 recurrence_month=category.recurrence_month,
                 color=category.color,
-                default_amount=category.default_amount,         # Добавлено
-                default_account_id=category.default_account_id, # Добавлено
+                default_amount=category.default_amount,
+                default_account_id=category.default_account_id,
                 created_at=category.created_at,
             )
             db.merge(model)
@@ -164,8 +165,8 @@ class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
             day_of_week=getattr(row, "day_of_week", None),
             recurrence_month=getattr(row, "recurrence_month", None),
             color=getattr(row, "color", "#8b5cf6") or "#8b5cf6",
-            default_amount=Decimal(str(row.default_amount)) if row.default_amount else None, # Добавлено
-            default_account_id=row.default_account_id, # Добавлено
+            default_amount=Decimal(str(row.default_amount)) if row.default_amount else None,
+            default_account_id=row.default_account_id,
             family_group_id=row.family_group_id,
             created_at=row.created_at,
         )
@@ -189,6 +190,7 @@ class PostgresTransactionRepository(
                 date=transaction.date,
                 author=transaction.author.value,
                 note=transaction.note,
+                is_executed=transaction.is_executed,
             )
             db.merge(model)
             db.commit()
@@ -259,6 +261,18 @@ class PostgresTransactionRepository(
                 )
             return [self._to_domain(r) for r in q.all()]
 
+    def get_deferred(self, family_group_id: str) -> List[Transaction]:
+        with self._get_db() as db:
+            q = (
+                db.query(TransactionModel)
+                .filter(
+                    TransactionModel.family_group_id == family_group_id,
+                    TransactionModel.is_executed == False,
+                )
+                .order_by(TransactionModel.date.asc())
+            )
+            return [self._to_domain(r) for r in q.all()]
+
     def delete(
         self, transaction_id: str, family_group_id: Optional[str] = None
     ) -> bool:
@@ -288,4 +302,5 @@ class PostgresTransactionRepository(
             note=row.note,
             family_group_id=row.family_group_id,
             date=row.date,
+            is_executed=getattr(row, "is_executed", True),
         )

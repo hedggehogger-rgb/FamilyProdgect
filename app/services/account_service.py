@@ -37,7 +37,9 @@ class AccountService:
         return self._account_repo.find_all(family_group_id)
 
     def add_transaction(self, transaction: Transaction) -> None:
-        self._apply_balance_changes(transaction, rollback=False)
+        # Деньги списываются только если платёж уже исполняется (не отложен)
+        if transaction.is_executed:
+            self._apply_balance_changes(transaction, rollback=False)
         self._tx_repo.save(transaction)
 
     def delete_transaction(
@@ -47,15 +49,29 @@ class AccountService:
         if not tx:
             raise KeyError(f"Транзакция '{transaction_id}' не найдена")
 
-        self._apply_balance_changes(tx, rollback=True)
+        # Откатываем баланс только если транзакция уже была исполнена
+        if tx.is_executed:
+            self._apply_balance_changes(tx, rollback=True)
         self._tx_repo.delete(transaction_id, family_group_id)
 
+    def execute_deferred_transaction(
+        self, transaction_id: str, family_group_id: Optional[str] = None
+    ) -> None:
+        tx = self._tx_repo.get_by_id(transaction_id, family_group_id)
+        if not tx:
+            raise KeyError(f"Транзакция '{transaction_id}' не найдена")
+        if tx.is_executed:
+            return
+
+        self._apply_balance_changes(tx, rollback=False)
+        tx.is_executed = True
+        self._tx_repo.save(tx)
+
     def delete_account(
-            self, account_id: str, family_group_id: Optional[str] = None
+        self, account_id: str, family_group_id: Optional[str] = None
     ) -> bool:
         acc = self.get_account(account_id, family_group_id)
         return self._account_repo.delete(acc.id, family_group_id)
-
 
     def transfer_funds(
         self,
@@ -80,6 +96,7 @@ class AccountService:
             author=author,
             family_group_id=family_group_id,
             note=note,
+            is_executed=True,
         )
         self.add_transaction(tx)
         return tx

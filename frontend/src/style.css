@@ -8,7 +8,7 @@
   }
 }
 
-/* Полное удаление системных стрелочек из input number во всех браузерах */
+/* Удаление системных стрелок из input number */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none !important;
@@ -19,7 +19,29 @@ input[type="number"] {
   appearance: textfield !important;
 }
 
-/* Фикс цвета автозаполнения для входа в аккаунт (всегда четкий черный цвет) */
+/* Стилизация календаря (input type="date") под пурпурную тему */
+input[type="date"] {
+  accent-color: #8b5cf6 !important;
+  color-scheme: light;
+}
+
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Иконка вызова календаря */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 4px;
+  transition: all 0.2s ease-in-out;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(139, 92, 246, 0.2);
+}
+
+/* Автозаполнение */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
@@ -28,7 +50,7 @@ input:-webkit-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Стилизация скроллбара под пурпурную тему */
+/* Скроллбар */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;

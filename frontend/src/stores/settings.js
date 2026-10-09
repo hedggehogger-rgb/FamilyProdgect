@@ -5,7 +5,7 @@ import api from '@/api';
 export const useSettingsStore = defineStore('settings', () => {
   const isDark = ref(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches));
   const baseCurrency = ref(localStorage.getItem('base_currency') || 'RUB');
-  const rates = ref({ RUB: 92, USD: 1, AMD: 390 }); // дефолтные
+  const rates = ref({ RUB: 92, USD: 1, AMD: 390 });
 
   function initTheme() { applyTheme(isDark.value); }
 
@@ -38,5 +38,10 @@ export const useSettingsStore = defineStore('settings', () => {
     return (Number(amount) / rateFrom) * rateTo;
   }
 
-  return { isDark, baseCurrency, rates, initTheme, toggleTheme, setBaseCurrency, fetchRates, convert };
+  function getSymbol(cur) {
+    const map = { RUB: '₽', USD: '$', AMD: '֏' };
+    return map[cur] || cur;
+  }
+
+  return { isDark, baseCurrency, rates, initTheme, toggleTheme, setBaseCurrency, fetchRates, convert, getSymbol };
 });

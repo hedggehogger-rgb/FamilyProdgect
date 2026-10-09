@@ -30,6 +30,18 @@ def set_category_limit(
     return {"status": "success", "limit_id": lim.id}
 
 
+@router.delete("/{category_id}", status_code=status.HTTP_200_OK)
+def delete_category_limit(
+    category_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    svc: LimitService = Depends(get_limit_service),
+):
+    deleted = svc.delete_limit(category_id, current_user.family_group_id)
+    if not deleted:
+        raise KeyError(f"Лимит для категории '{category_id}' не найден")
+    return {"status": "success", "message": "Лимит успешно удалён"}
+
+
 @router.get("/status/{category_id}", response_model=LimitStatusResponseSchema)
 def get_limit_status(
     category_id: str,

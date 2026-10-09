@@ -1,72 +1,138 @@
 <template>
-  <div class="max-w-2xl space-y-6">
-    <div class="bg-theme-light-surface dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-2xl p-6 shadow-sm space-y-6">
-      <h2 class="text-xl font-black text-slate-800 dark:text-purple-100 border-b border-theme-light-border dark:border-theme-dark-border pb-4">
-        Настройки приложения
-      </h2>
+  <div class="space-y-6 max-w-4xl">
+    <div>
+      <h2 class="text-xl font-black text-slate-800 dark:text-purple-100">Настройки</h2>
+      <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mt-1">
+        Управление профилем, семьей и параметрами интерфейса
+      </p>
+    </div>
 
-      <!-- 1. Валюта отображения -->
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="font-bold text-sm text-slate-800 dark:text-purple-100">Основная валюта</p>
-          <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted">В этой валюте отображается баланс и общие отчеты</p>
-        </div>
-        <div class="w-64">
-          <CustomSelect
-            v-model="settings.baseCurrency"
-            :options="currencyOptions"
-            @change="settings.setBaseCurrency"
-          />
-        </div>
+    <!-- Карточка профиля пользователя -->
+    <div class="bg-theme-light-card dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-2xl p-6 shadow-sm space-y-4">
+      <div class="flex items-center gap-3 pb-3 border-b border-theme-light-border dark:border-theme-dark-border">
+        <User class="w-5 h-5 text-purple-600 dark:text-purple-400" />
+        <h3 class="font-black text-base text-slate-800 dark:text-purple-100">Профиль пользователя</h3>
       </div>
 
-      <!-- 2. Смена темы -->
-      <div class="flex items-center justify-between pt-4 border-t border-theme-light-border dark:border-theme-dark-border">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <p class="font-bold text-sm text-slate-800 dark:text-purple-100">Тема оформления</p>
-          <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted">Переключение между светлой и ночной пурпурной палитрой</p>
+          <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">Имя</label>
+          <div class="flex gap-2">
+            <input
+              v-model="userName"
+              class="w-full bg-white dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500 text-slate-800 dark:text-white font-medium"
+            />
+            <button
+              @click="saveProfileName"
+              class="px-4 py-2 text-xs font-bold bg-theme-accent-primary hover:bg-theme-accent-hover text-white rounded-xl shadow-sm transition"
+            >
+              Сохранить
+            </button>
+          </div>
         </div>
-        <button
-          @click="settings.toggleTheme()"
-          class="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 px-4 py-2 rounded-xl text-xs font-bold transition hover:bg-purple-200"
-        >
-          <Sun v-if="settings.isDark" class="w-4 h-4" />
-          <Moon v-else class="w-4 h-4" />
-          {{ settings.isDark ? 'Тёмная тема' : 'Светлая тема' }}
-        </button>
-      </div>
 
-      <!-- 3. Смена имени пользователя -->
-      <div class="pt-4 border-t border-theme-light-border dark:border-theme-dark-border">
-        <label class="block font-bold text-sm text-slate-800 dark:text-purple-100 mb-1">Имя пользователя</label>
-        <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mb-3">Отображается супругу/супруге в семейном бюджете</p>
-        <div class="flex gap-3">
+        <div>
+          <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1">Email</label>
           <input
-            v-model="newName"
-            class="flex-1 bg-white dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-xl p-2.5 text-sm outline-none font-semibold text-slate-800 dark:text-purple-100"
+            :value="auth.user?.email"
+            disabled
+            class="w-full bg-slate-100 dark:bg-theme-dark-surface/60 border border-theme-light-border dark:border-theme-dark-border rounded-xl px-3 py-2 text-sm text-slate-600 dark:text-purple-200 outline-none cursor-not-allowed font-mono"
           />
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-4 pt-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">Роль в семье:</span>
+          <span class="text-xs font-bold px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200">
+            {{ auth.user?.role === 'HUSBAND' ? 'Любими Муж 🦁' : 'КошкоЖена 🐱' }}
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted">ID семейной группы:</span>
           <button
-            @click="saveName"
-            class="bg-theme-accent-primary hover:bg-theme-accent-hover text-white text-xs px-5 py-2.5 rounded-xl font-bold shadow-md transition"
+            @click="copyFamilyId"
+            class="text-xs font-mono font-bold px-2.5 py-1 rounded-lg border border-purple-300 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-purple-700 dark:text-purple-200 flex items-center gap-1.5 transition"
+            title="Нажмите, чтобы скопировать"
           >
-            Сохранить
+            <span>{{ auth.user?.family_group_id }}</span>
+            <Check v-if="copied" class="w-3.5 h-3.5 text-emerald-400" />
+            <Copy v-else class="w-3.5 h-3.5 text-purple-400" />
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- 4. Выход из аккаунта -->
-      <div class="pt-4 border-t border-theme-light-border dark:border-theme-dark-border flex justify-between items-center">
+    <!-- Общие настройки системы -->
+    <div class="bg-theme-light-card dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-2xl p-6 shadow-sm space-y-4">
+      <div class="flex items-center gap-3 pb-3 border-b border-theme-light-border dark:border-theme-dark-border">
+        <Coins class="w-5 h-5 text-purple-600 dark:text-purple-400" />
+        <h3 class="font-black text-base text-slate-800 dark:text-purple-100">Параметры отображения</h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
         <div>
-          <p class="font-bold text-sm text-red-600 dark:text-red-400">Выход</p>
-          <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted">Завершить текущий сеанс на этом устройстве</p>
+          <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1.5">
+            Базовая валюта пересчёта
+          </label>
+          <CustomSelect
+            :modelValue="settings.baseCurrency"
+            :options="currencyOptions"
+            @change="handleCurrencyChange"
+          />
+          <p class="text-[11px] text-theme-light-muted dark:text-theme-dark-muted mt-1.5">
+            Все балансы и аналитика будут конвертироваться в эту валюту
+          </p>
         </div>
+
+        <div>
+          <label class="block text-xs font-bold text-theme-light-muted dark:text-theme-dark-muted mb-1.5">
+            Тема интерфейса
+          </label>
+          <button
+            type="button"
+            @click="settings.toggleTheme()"
+            class="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-theme-light-border dark:border-theme-dark-border bg-white dark:bg-theme-dark-surface font-bold text-sm text-slate-800 dark:text-purple-100 hover:border-purple-400 transition"
+          >
+            <span class="flex items-center gap-2">
+              <Sun v-if="!settings.isDark" class="w-4 h-4 text-amber-500" />
+              <Moon v-else class="w-4 h-4 text-purple-400" />
+              {{ settings.isDark ? 'Тёмная тема' : 'Светлая тема' }}
+            </span>
+            <span class="text-xs text-purple-600 dark:text-purple-300 font-bold">Сменить</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Курсы валют -->
+    <div class="bg-theme-light-card dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-2xl p-6 shadow-sm space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-theme-light-border dark:border-theme-dark-border">
+        <h3 class="font-black text-base text-slate-800 dark:text-purple-100">Текущие курсы валют к USD</h3>
         <button
-          @click="handleLogout"
-          class="border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2"
+          @click="refreshRates"
+          :disabled="ratesLoading"
+          class="text-xs font-bold text-purple-600 dark:text-purple-300 hover:underline flex items-center gap-1.5 disabled:opacity-50"
         >
-          <LogOut class="w-4 h-4" />
-          Выйти из аккаунта
+          <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': ratesLoading }" />
+          Обновить
         </button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4 text-center font-mono">
+        <div class="p-3 rounded-xl bg-purple-50/50 dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border">
+          <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted font-bold font-sans">USD ($)</p>
+          <p class="text-base font-black text-purple-700 dark:text-purple-200 mt-1">1.00</p>
+        </div>
+        <div class="p-3 rounded-xl bg-purple-50/50 dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border">
+          <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted font-bold font-sans">RUB (₽)</p>
+          <p class="text-base font-black text-purple-700 dark:text-purple-200 mt-1">{{ settings.rates.RUB }}</p>
+        </div>
+        <div class="p-3 rounded-xl bg-purple-50/50 dark:bg-theme-dark-surface border border-theme-light-border dark:border-theme-dark-border">
+          <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted font-bold font-sans">AMD (֏)</p>
+          <p class="text-base font-black text-purple-700 dark:text-purple-200 mt-1">{{ settings.rates.AMD }}</p>
+        </div>
       </div>
     </div>
   </div>
@@ -74,39 +140,51 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { Sun, Moon, LogOut } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
 import CustomSelect from '@/components/CustomSelect.vue';
 import api from '@/api';
+import { User, Coins, Copy, Check, Sun, Moon, RefreshCw } from 'lucide-vue-next';
 
 const auth = useAuthStore();
 const settings = useSettingsStore();
-const router = useRouter();
+
+const userName = ref(auth.user?.name || '');
+const copied = ref(false);
+const ratesLoading = ref(false);
 
 const currencyOptions = [
-  { label: 'RUB (₽) — Российский рубль', value: 'RUB' },
-  { label: 'USD ($) — Доллар США', value: 'USD' },
-  { label: 'AMD (֏) — Армянский драм', value: 'AMD' }
+  { label: 'Российский рубль (RUB, ₽)', value: 'RUB' },
+  { label: 'Доллар США (USD, $)', value: 'USD' },
+  { label: 'Армянский драм (AMD, ֏)', value: 'AMD' }
 ];
 
-const newName = ref(auth.user?.name || '');
+function handleCurrencyChange(val) {
+  settings.setBaseCurrency(val);
+}
 
-async function saveName() {
-  if (!newName.value.trim()) return;
+async function saveProfileName() {
+  if (!userName.value.trim()) return;
   try {
-    const { data } = await api.put('/auth/me', { name: newName.value });
-    auth.user.name = data.name;
-    localStorage.setItem('user', JSON.stringify(auth.user));
-    alert('Имя успешно обновлено!');
-  } catch (e) {
-    alert('Ошибка сохранения имени');
+    const { data } = await api.put('/auth/me', { name: userName.value.trim() });
+    auth.user = data;
+    localStorage.setItem('user', JSON.stringify(data));
+    alert('Имя успешно сохранено');
+  } catch (err) {
+    alert('Не удалось обновить имя');
   }
 }
 
-function handleLogout() {
-  auth.logout();
-  router.push('/login');
+async function copyFamilyId() {
+  if (!auth.user?.family_group_id) return;
+  await navigator.clipboard.writeText(auth.user.family_group_id);
+  copied.value = true;
+  setTimeout(() => (copied.value = false), 2000);
+}
+
+async function refreshRates() {
+  ratesLoading.value = true;
+  await settings.fetchRates();
+  ratesLoading.value = false;
 }
 </script>

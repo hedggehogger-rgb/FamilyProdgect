@@ -3,10 +3,10 @@
     <!-- Боковое меню -->
     <aside class="w-64 bg-theme-light-surface dark:bg-theme-dark-surface border-r border-theme-light-border dark:border-theme-dark-border flex flex-col justify-between shadow-lg z-20">
       <div>
-        <!-- Логотип: без градиента, чистый цвет -->
+        <!-- Логотип: иконка кошелька в квадратике слева от названия -->
         <div class="h-16 flex items-center gap-3 px-6 border-b border-theme-light-border dark:border-theme-dark-border">
-          <div class="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center text-white shadow-md shadow-purple-500/30">
-            <WalletCards class="w-5 h-5 text-white" />
+          <div class="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center text-white shadow-md shadow-purple-500/30 shrink-0">
+            <Wallet class="w-5 h-5 text-white" />
           </div>
           <span class="font-black text-xl tracking-tight text-purple-600 dark:text-purple-300">
             Family Finance
@@ -35,12 +35,12 @@
       <!-- Пользователь внизу -->
       <div class="p-4 border-t border-theme-light-border dark:border-theme-dark-border bg-purple-50/50 dark:bg-theme-dark-card/40 flex items-center justify-between">
         <div class="flex items-center gap-3 overflow-hidden">
-          <div class="w-9 h-9 rounded-full bg-purple-200 dark:bg-purple-900/60 flex items-center justify-center text-purple-700 dark:text-purple-300 font-bold text-sm">
+          <div class="w-9 h-9 rounded-full bg-purple-200 dark:bg-purple-900/60 flex items-center justify-center text-purple-700 dark:text-purple-300 font-bold text-sm shrink-0">
             {{ auth.user?.name ? auth.user.name.charAt(0).toUpperCase() : 'U' }}
           </div>
           <div class="overflow-hidden">
             <p class="text-sm font-bold truncate">{{ auth.user?.name }}</p>
-            <p class="text-xs text-purple-600 dark:text-purple-400 font-bold">
+            <p class="text-xs text-purple-600 dark:text-purple-400 font-bold truncate">
               {{ auth.user?.role === 'HUSBAND' ? 'Любими Муж' : 'КошкоЖена' }}
             </p>
           </div>
@@ -48,7 +48,7 @@
         <button
           @click="handleLogout"
           title="Выйти"
-          class="p-2 text-theme-light-muted dark:text-theme-dark-muted hover:text-red-500 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition"
+          class="p-2 text-theme-light-muted dark:text-theme-dark-muted hover:text-red-500 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition shrink-0"
         >
           <LogOut class="w-5 h-5" />
         </button>
@@ -91,7 +91,18 @@ import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
-import { LayoutDashboard, CreditCard, CalendarDays, Tags, PiggyBank, Settings, LogOut, Sun, Moon, WalletCards } from 'lucide-vue-next';
+import {
+  Wallet,
+  LayoutDashboard,
+  CreditCard,
+  CalendarDays,
+  Tags,
+  PiggyBank,
+  Settings,
+  LogOut,
+  Sun,
+  Moon
+} from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();
@@ -100,7 +111,7 @@ const settings = useSettingsStore();
 
 onMounted(() => {
   settings.initTheme();
-  settings.fetchRates(); // ИСПРАВЛЕНИЕ: Скачиваем курсы при входе
+  settings.fetchRates();
 });
 
 const navItems = [

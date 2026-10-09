@@ -61,11 +61,8 @@ class CategoryModel(Base):
     day_of_week = Column(Integer, nullable=True)
     recurrence_month = Column(Integer, nullable=True)
     color = Column(String(30), default="#8b5cf6", nullable=False)
-
-    # Новые поля для регулярных операций
     default_amount = Column(Numeric(19, 2), nullable=True)
     default_account_id = Column(String(50), nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
@@ -82,6 +79,7 @@ class TransactionModel(Base):
     date = Column(DateTime, default=datetime.utcnow, nullable=False)
     author = Column(String(20), default="HUSBAND", nullable=False)
     note = Column(String(255), default="", nullable=False)
+    is_executed = Column(Boolean, default=True, nullable=False)
 
 
 class CategoryLimitModel(Base):
@@ -110,6 +108,8 @@ class PiggyBankModel(Base):
     auto_replenish_amount = Column(Numeric(19, 2), default=0.0, nullable=False)
     auto_replenish_day = Column(Integer, nullable=True)
     is_completed = Column(Boolean, default=False, nullable=False)
+    snoozed_until = Column(DateTime, nullable=True)
+    skip_until_month = Column(String(10), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
@@ -126,6 +126,7 @@ def init_db():
     Base.metadata.create_all(bind=engine)
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
+        conn.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS is_executed BOOLEAN DEFAULT TRUE;"))
         conn.execute(text("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
         conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
         conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS day_of_week INTEGER;"))
@@ -134,7 +135,7 @@ def init_db():
         conn.execute(text("ALTER TABLE category_limits ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
         conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
-
-        # Добавляем новые колонки для планирования операций
         conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_amount NUMERIC(19, 2);"))
         conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_account_id VARCHAR(50);"))
+        conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS snoozed_until TIMESTAMP;"))
+        conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS skip_until_month VARCHAR(10);"))

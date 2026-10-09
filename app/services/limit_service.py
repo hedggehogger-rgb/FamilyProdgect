@@ -62,6 +62,23 @@ class LimitService:
         finally:
             db.close()
 
+    def delete_limit(self, category_id: str, family_group_id: str) -> bool:
+        """Полное удаление лимитов для категории"""
+        db: Session = SessionLocal()
+        try:
+            deleted = (
+                db.query(CategoryLimitModel)
+                .filter(
+                    CategoryLimitModel.category_id == category_id,
+                    CategoryLimitModel.family_group_id == family_group_id,
+                )
+                .delete()
+            )
+            db.commit()
+            return deleted > 0
+        finally:
+            db.close()
+
     def get_category_limit_status(
         self,
         category_id: str,
@@ -93,20 +110,19 @@ class LimitService:
             )
             cat_name = cat.name if cat else "Категория"
 
-            # Проверка активности срока действия лимита
             start_year = limit.start_date.year
             start_month = limit.start_date.month
             months_passed = (target_year - start_year) * 12 + (target_month - start_month)
             is_active = 0 <= months_passed < limit.months_duration
 
             limit_curr = Currency(limit.currency)
-            # Фильтрация расходов за указанный месяц на уровне SQL
             txs = (
                 db.query(TransactionModel)
                 .filter(
                     TransactionModel.family_group_id == family_group_id,
                     TransactionModel.category_id == category_id,
                     TransactionModel.type.in_(["EXPENSE_PLANNED", "EXPENSE_IMPULSE"]),
+                    TransactionModel.is_executed == True,
                     extract("year", TransactionModel.date) == target_year,
                     extract("month", TransactionModel.date) == target_month,
                 )
