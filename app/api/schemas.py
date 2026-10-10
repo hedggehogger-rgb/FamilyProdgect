@@ -44,6 +44,25 @@ class UserJoinFamilySchema(BaseModel):
     role: Author = Author.WIFE
 
 
+class FamilyInfoResponseSchema(BaseModel):
+    id: str
+    name: str
+    members_count: int
+
+
+class ForgotPasswordRequestSchema(BaseModel):
+    email: str
+
+
+class ResetPasswordConfirmSchema(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6)
+
+
+class DeleteAccountSchema(BaseModel):
+    password: str = Field(..., min_length=1)
+
+
 class UserProfileUpdateSchema(BaseModel):
     name: str = Field(..., min_length=2)
 

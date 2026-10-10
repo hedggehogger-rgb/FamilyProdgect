@@ -11,6 +11,20 @@ const router = createRouter({
       meta: { guestOnly: true }
     },
     {
+      path: '/join',
+      name: 'JoinFamilyDirect',
+      redirect: (to) => ({
+        path: '/login',
+        query: { mode: 'join', code: to.query.code || '' }
+      })
+    },
+    {
+      path: '/reset-password',
+      name: 'ResetPassword',
+      component: () => import('@/views/ResetPasswordView.vue'),
+      meta: { guestOnly: true }
+    },
+    {
       path: '/',
       component: () => import('@/layouts/AppLayout.vue'),
       meta: { requiresAuth: true },

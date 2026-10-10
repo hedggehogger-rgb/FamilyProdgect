@@ -38,6 +38,15 @@ class UserModel(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class PasswordResetTokenModel(Base):
+    __tablename__ = "password_reset_tokens"
+    id = Column(String(50), primary_key=True, index=True)
+    user_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token = Column(String(100), unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class AccountModel(Base):
     __tablename__ = "accounts"
     id = Column(String(50), primary_key=True, index=True)
@@ -127,19 +136,12 @@ class PiggyBankNoteModel(Base):
 def init_db():
     Base.metadata.create_all(bind=engine)
     with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
-        conn.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS is_executed BOOLEAN DEFAULT TRUE;"))
-        conn.execute(text("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
-        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
-        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS day_of_week INTEGER;"))
-        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS recurrence_month INTEGER;"))
-        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS color VARCHAR(30) DEFAULT '#8b5cf6';"))
-        conn.execute(text("ALTER TABLE category_limits ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
-        conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
-        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_amount NUMERIC(19, 2);"))
-        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_currency VARCHAR(10) DEFAULT 'RUB';"))
-        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_account_id VARCHAR(50);"))
-        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;"))
-        conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS snoozed_until TIMESTAMP;"))
-        conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS skip_until_month VARCHAR(10);"))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id VARCHAR(50) PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                token VARCHAR(100) UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            );
+        """))

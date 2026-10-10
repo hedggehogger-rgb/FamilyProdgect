@@ -23,6 +23,8 @@ services:
       dockerfile: Dockerfile
     container_name: family_finance_api
     restart: always
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     environment:
