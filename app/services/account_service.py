@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import List, Optional
 import uuid
 from app.domain.interfaces import IAccountRepository, ITransactionRepository
-from app.domain.models import Account, Author, Transaction, TransactionType
+from app.domain.models import Account, Author, Currency, Transaction, TransactionType
 from app.services.currency_service import CurrencyConverter
 
 
@@ -37,7 +37,6 @@ class AccountService:
         return self._account_repo.find_all(family_group_id)
 
     def add_transaction(self, transaction: Transaction) -> None:
-        # Деньги списываются только если платёж уже исполняется (не отложен)
         if transaction.is_executed:
             self._apply_balance_changes(transaction, rollback=False)
         self._tx_repo.save(transaction)
@@ -55,10 +54,8 @@ class AccountService:
         if tx.is_executed:
             original_acc = self._account_repo.find_by_id(tx.account_id, family_group_id)
             if original_acc:
-                # Исходный счёт существует — возвращаем деньги на него
                 self._apply_balance_changes(tx, rollback=True)
             elif target_account_id:
-                # Счёт удалён, но пользователь выбрал другой счёт для зачисления
                 target_acc = self.get_account(target_account_id, family_group_id)
                 effective_tx = Transaction(
                     id=tx.id,
@@ -75,9 +72,6 @@ class AccountService:
                     is_executed=True,
                 )
                 self._apply_balance_changes(effective_tx, rollback=True)
-            else:
-                # Счёт удалён и альтернативный не выбран — просто удаляем запись
-                pass
 
         self._tx_repo.delete(transaction_id, family_group_id)
 
@@ -106,18 +100,20 @@ class AccountService:
         to_account_id: str,
         amount: Decimal,
         author: Author,
+        currency: Optional[Currency] = None,
         family_group_id: Optional[str] = None,
         note: str = "Перевод между счетами",
     ) -> Transaction:
         from_acc = self.get_account(from_account_id, family_group_id)
         self.get_account(to_account_id, family_group_id)
+        tx_currency = currency or from_acc.currency
 
         tx = Transaction(
             id=str(uuid.uuid4()),
             type=TransactionType.TRANSFER,
             category_id=None,
             amount=amount,
-            currency=from_acc.currency,
+            currency=tx_currency,
             account_id=from_account_id,
             to_account_id=to_account_id,
             author=author,

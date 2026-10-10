@@ -8,6 +8,26 @@
   }
 }
 
+/* КОНТРАСТ В ТЁМНОЙ ТЕМЕ: Замена блеклого серого на яркий лавандовый и чистый белый */
+.dark .text-theme-light-muted {
+  color: #d8b4fe !important; /* Яркая читаемая лаванда */
+}
+
+.dark .text-slate-400,
+.dark .text-slate-500 {
+  color: #c4b5fd !important; /* Насыщенная лаванда */
+}
+
+.dark .text-slate-600,
+.dark .text-slate-700 {
+  color: #e9d5ff !important; /* Светло-сиреневый */
+}
+
+.dark .text-slate-800,
+.dark .text-slate-900 {
+  color: #ffffff !important; /* Чистый белый для контрастных заголовков */
+}
+
 /* Удаление системных стрелок из input number */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
@@ -59,5 +79,5 @@ input:-webkit-autofill:focus {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-purple-300/80 dark:bg-purple-900/60 rounded-full hover:bg-purple-400 dark:hover:bg-purple-700;
+  @apply bg-purple-400/80 dark:bg-purple-700 rounded-full hover:bg-purple-500 dark:hover:bg-purple-600;
 }

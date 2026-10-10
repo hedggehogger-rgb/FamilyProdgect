@@ -39,7 +39,6 @@ def add_transaction(
     author = Author(current_user.role)
     tx_date = dto.date or datetime.utcnow()
 
-    # Если платёж плановый и запланирован на будущее число, он создаётся как отложенный
     is_future = tx_date.date() > datetime.utcnow().date()
     is_planned_type = dto.type in (TransactionType.EXPENSE_PLANNED, TransactionType.INCOME_PLANNED)
     is_executed = not (is_planned_type and is_future)
@@ -102,6 +101,7 @@ def transfer_between_accounts(
         from_account_id=dto.from_account_id,
         to_account_id=dto.to_account_id,
         amount=dto.amount,
+        currency=dto.currency,
         author=Author(current_user.role),
         family_group_id=current_user.family_group_id,
         note=dto.note,
@@ -118,6 +118,7 @@ def get_transactions(
     offset: int = Query(default=0, ge=0),
     account_id: Optional[str] = Query(default=None),
     category_id: Optional[str] = Query(default=None),
+    exclude_transfers: bool = Query(default=True),
     current_user: UserModel = Depends(get_current_user),
     tx_repo: PostgresTransactionRepository = Depends(get_transaction_repo),
 ):
@@ -127,6 +128,7 @@ def get_transactions(
         offset=offset,
         account_id=account_id,
         category_id=category_id,
+        exclude_transfers=exclude_transfers,
     )
     return PaginatedResponse(
         items=[

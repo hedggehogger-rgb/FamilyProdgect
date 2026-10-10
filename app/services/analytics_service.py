@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Dict, Optional
 from app.domain.interfaces import ICategoryRepository, ITransactionRepository
-from app.domain.models import CategoryGroup, Currency
+from app.domain.models import CategoryGroup, Currency, TransactionType
 from app.services.currency_service import CurrencyConverter
 
 
@@ -40,19 +40,42 @@ class AnalyticsService:
         income = Decimal("0.00")
         expense = Decimal("0.00")
 
+        income_types = {
+            TransactionType.INCOME,
+            TransactionType.INCOME_PLANNED,
+            TransactionType.INCOME_UNPLANNED,
+        }
+        expense_types = {
+            TransactionType.EXPENSE_PLANNED,
+            TransactionType.EXPENSE_IMPULSE,
+            TransactionType.INVESTMENT,
+        }
+
         for tx in txs:
-            cat = (
-                self._cat_repo.get_by_id(tx.category_id, family_group_id)
-                if tx.category_id
-                else None
-            )
+            # Отложенные будущие платежи не искажают фактическую статистику
+            if not getattr(tx, "is_executed", True):
+                continue
+
             val = self._converter.convert(
                 tx.amount, tx.currency, target_currency
             )
-            if cat and cat.group == CategoryGroup.INCOME:
+
+            # 1. Сначала определяем по типу операции (работает даже если категория не выбрана)
+            if tx.type in income_types:
                 income += val
-            elif cat and cat.group == CategoryGroup.EXPENSE:
+            elif tx.type in expense_types:
                 expense += val
+            else:
+                # 2. Резервная проверка по группе категории
+                cat = (
+                    self._cat_repo.get_by_id(tx.category_id, family_group_id)
+                    if tx.category_id
+                    else None
+                )
+                if cat and cat.group == CategoryGroup.INCOME:
+                    income += val
+                elif cat and cat.group in (CategoryGroup.EXPENSE, CategoryGroup.INVESTMENT):
+                    expense += val
 
         return MonthlyReport(
             year=year,
@@ -74,6 +97,9 @@ class AnalyticsService:
         result = defaultdict(lambda: Decimal("0.00"))
 
         for tx in txs:
+            if not getattr(tx, "is_executed", True):
+                continue
+
             cat = (
                 self._cat_repo.get_by_id(tx.category_id, family_group_id)
                 if tx.category_id

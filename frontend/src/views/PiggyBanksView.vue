@@ -1,21 +1,19 @@
 <template>
   <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <div>
-        <h2 class="text-xl font-black text-slate-800 dark:text-purple-100">Семейные копилки</h2>
-        <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mt-1">Накопления на совместные цели</p>
-      </div>
-      <button @click="showModal = true" class="bg-theme-accent-primary hover:bg-theme-accent-hover text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-md shadow-purple-500/20 flex items-center gap-2">
-        <Plus class="w-4 h-4" /> Создать копилку
-      </button>
-    </div>
+    <!-- Плавающая кнопка создания копилки -->
+    <button
+      @click="showModal = true"
+      title="Создать копилку"
+      class="fixed top-20 right-8 z-30 bg-theme-accent-primary hover:bg-theme-accent-hover text-white p-3 rounded-2xl font-bold transition-all shadow-lg shadow-purple-500/30 hover:scale-105 active:scale-95 flex items-center justify-center"
+    >
+      <Plus class="w-5 h-5 stroke-[2.5]" />
+    </button>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div v-for="pb in piggyBanks" :key="pb.id" class="bg-theme-light-card dark:bg-theme-dark-card p-6 rounded-2xl border border-theme-light-border dark:border-theme-dark-border shadow-sm space-y-4">
         <div class="flex justify-between items-start">
           <div>
             <h3 class="font-black text-slate-800 dark:text-purple-100 text-lg">{{ pb.name }}</h3>
-            <span class="text-xs text-theme-light-muted dark:text-theme-dark-muted font-mono">Счёт списания: {{ getAccountName(pb.account_id) }}</span>
             <div v-if="pb.is_auto_replenish && !pb.is_completed" class="text-xs text-purple-600 dark:text-purple-400 mt-1 font-bold">
               Автопополнение: {{ pb.auto_replenish_amount }} {{ settings.getSymbol(pb.currency) }} (каждое {{ pb.auto_replenish_day }}-е число)
             </div>
@@ -43,8 +41,12 @@
 
         <div class="pt-2 border-t border-theme-light-border dark:border-theme-dark-border flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2">
-            <button @click="openDepositModal(pb)" class="text-xs bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 hover:bg-purple-200 font-bold px-3 py-1.5 rounded-xl transition">
-              Пополнить
+            <button
+              @click="openDepositModal(pb)"
+              title="Пополнить копилку"
+              class="p-2 bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 hover:bg-purple-200 rounded-xl transition"
+            >
+              <Coins class="w-4 h-4" />
             </button>
             <button
               @click="handleAutoClick(pb)"
@@ -58,18 +60,27 @@
               <span class="w-2 h-2 rounded-full" :class="pb.is_auto_replenish ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'"></span>
               {{ pb.is_auto_replenish ? 'Отключить авто' : 'Включить авто' }}
             </button>
-            <button v-if="isApproaching(pb)" @click="openSnoozeModal(pb)" class="text-xs bg-red-500 hover:bg-red-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-sm transition animate-pulse">
-              Отсрочить пополнение
+            <button
+              v-if="isApproaching(pb)"
+              @click="openSnoozeModal(pb)"
+              title="Отсрочить пополнение"
+              class="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-sm transition animate-pulse"
+            >
+              <Clock class="w-4 h-4" />
             </button>
           </div>
-          <button @click="askDelete(pb)" class="text-xs text-rose-500 hover:text-rose-700 font-bold">
-            Разбить / Удалить
+          <button
+            @click="askDelete(pb)"
+            title="Разбить / Удалить"
+            class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition"
+          >
+            <Trash2 class="w-4 h-4" />
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Модалки вынесены в отдельные компоненты -->
+    <!-- Модалки -->
     <PiggyCreateModal :show="showModal" :form="createForm" :accountOptions="accountOptions" :currencyOptions="symbolCurrencyOptions" @close="showModal = false" @submit="createPiggy" />
     <PiggyDepositModal :target="depositTarget" :form="depositForm" :currencyOptions="symbolCurrencyOptions" :accountOptions="accountOptions" @close="depositTarget = null" @submit="submitDeposit" />
     <PiggyAutoModal :target="autoConfigTarget" :form="autoConfigForm" :accountOptions="accountOptions" @close="autoConfigTarget = null" @submit="submitEnableAuto" />
@@ -80,7 +91,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { Plus } from 'lucide-vue-next';
+import { Plus, Coins, Clock, Trash2 } from 'lucide-vue-next';
 import api from '@/api';
 import { useSettingsStore } from '@/stores/settings';
 import { formatDate } from '@/utils/formatters';
@@ -117,18 +128,18 @@ const symbolCurrencyOptions = [
 ];
 
 const accountOptions = computed(() => accounts.value.map(a => ({ label: `${a.name} (${settings.getSymbol(a.currency)})`, value: a.id })));
-function getAccountName(id) { const acc = accounts.value.find(a => a.id === id); return acc ? acc.name : '?'; }
 function getPercent(pb) { return Math.min(100, Math.round((Number(pb.current_amount) / Number(pb.target_amount)) * 100)); }
 
 const now = new Date();
 const currentYearMonth = computed(() => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
 
+// Показываем кнопку отсрочки за неделю (7 дней) до даты списания
 function isApproaching(pb) {
   if (!pb.is_auto_replenish || pb.is_completed) return false;
   if (pb.skip_until_month === currentYearMonth.value) return false;
   const currentDay = now.getDate();
   const day = pb.auto_replenish_day;
-  return (day >= currentDay && day - currentDay <= 4);
+  return (day >= currentDay && day - currentDay <= 7);
 }
 
 async function loadData() {

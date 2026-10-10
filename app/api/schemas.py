@@ -92,7 +92,9 @@ class CategoryCreateSchema(BaseModel):
     recurrence_month: Optional[int] = None
     color: str = DEFAULT_CATEGORY_COLOR
     default_amount: Optional[Decimal] = None
+    default_currency: Optional[Currency] = Currency.RUB
     default_account_id: Optional[str] = None
+    expires_at: Optional[datetime] = None
 
 
 class CategoryUpdateSchema(BaseModel):
@@ -103,7 +105,9 @@ class CategoryUpdateSchema(BaseModel):
     recurrence_month: Optional[int] = None
     color: Optional[str] = None
     default_amount: Optional[Decimal] = None
+    default_currency: Optional[Currency] = Currency.RUB
     default_account_id: Optional[str] = None
+    expires_at: Optional[datetime] = None
 
 
 class CategoryResponseSchema(BaseModel):
@@ -118,7 +122,9 @@ class CategoryResponseSchema(BaseModel):
     recurrence_month: Optional[int]
     color: str
     default_amount: Optional[Decimal] = None
+    default_currency: Optional[Currency] = Currency.RUB
     default_account_id: Optional[str] = None
+    expires_at: Optional[datetime] = None
     created_at: datetime
 
 

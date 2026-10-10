@@ -63,11 +63,14 @@ class PostgresTransactionRepository(
         offset: int = 0,
         account_id: Optional[str] = None,
         category_id: Optional[str] = None,
+        exclude_transfers: bool = True,
     ) -> Tuple[List[Transaction], int]:
         with self._get_db() as db:
             q = db.query(TransactionModel).filter(
                 TransactionModel.family_group_id == family_group_id
             )
+            if exclude_transfers:
+                q = q.filter(TransactionModel.type != TransactionType.TRANSFER.value)
             if account_id:
                 q = q.filter(TransactionModel.account_id == account_id)
             if category_id:
@@ -89,12 +92,13 @@ class PostgresTransactionRepository(
             q = db.query(TransactionModel).filter(
                 extract("year", TransactionModel.date) == year,
                 extract("month", TransactionModel.date) == month,
+                TransactionModel.type != TransactionType.TRANSFER.value,
             )
             if family_group_id:
                 q = q.filter(
                     TransactionModel.family_group_id == family_group_id
                 )
-            return [self._to_domain(r) for r in q.all()]
+            return [self._to_domain(r) for r in rows] if (rows := q.all()) else []
 
     def get_deferred(self, family_group_id: str) -> List[Transaction]:
         with self._get_db() as db:

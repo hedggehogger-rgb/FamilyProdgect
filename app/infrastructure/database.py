@@ -62,7 +62,9 @@ class CategoryModel(Base):
     recurrence_month = Column(Integer, nullable=True)
     color = Column(String(30), default="#8b5cf6", nullable=False)
     default_amount = Column(Numeric(19, 2), nullable=True)
+    default_currency = Column(String(10), default="RUB", nullable=True)
     default_account_id = Column(String(50), nullable=True)
+    expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
@@ -136,6 +138,8 @@ def init_db():
         conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS family_group_id VARCHAR(50);"))
         conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_amount NUMERIC(19, 2);"))
+        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_currency VARCHAR(10) DEFAULT 'RUB';"))
         conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS default_account_id VARCHAR(50);"))
+        conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;"))
         conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS snoozed_until TIMESTAMP;"))
         conn.execute(text("ALTER TABLE piggy_banks ADD COLUMN IF NOT EXISTS skip_until_month VARCHAR(10);"))

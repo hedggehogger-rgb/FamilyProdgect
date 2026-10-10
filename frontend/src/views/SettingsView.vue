@@ -1,12 +1,5 @@
 <template>
   <div class="space-y-6 max-w-4xl">
-    <div>
-      <h2 class="text-xl font-black text-slate-800 dark:text-purple-100">Настройки</h2>
-      <p class="text-xs text-theme-light-muted dark:text-theme-dark-muted mt-1">
-        Управление профилем, семьей и параметрами интерфейса
-      </p>
-    </div>
-
     <!-- Карточка профиля пользователя -->
     <div class="bg-theme-light-card dark:bg-theme-dark-card border border-theme-light-border dark:border-theme-dark-border rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex items-center gap-3 pb-3 border-b border-theme-light-border dark:border-theme-dark-border">

@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 import logging
+from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
 from app.domain.models import Author
@@ -14,6 +15,7 @@ from app.services.account_service import AccountService
 from app.services.piggy_bank_service import PiggyBankService
 
 logger = logging.getLogger(__name__)
+ARMENIA_TZ = ZoneInfo("Asia/Yerevan")
 
 
 class ScheduledTasksWorker:
@@ -23,27 +25,35 @@ class ScheduledTasksWorker:
     ):
         self._account_svc = account_svc
         self._piggy_svc = piggy_svc
-        self._scheduler = BackgroundScheduler()
+        # Планировщик привязан к часовому поясу Армении
+        self._scheduler = BackgroundScheduler(timezone="Asia/Yerevan")
 
     def start(self):
+        # Запуск каждый день ровно в 20:00 по времени Армении
         self._scheduler.add_job(
             self.run_daily_tasks,
             "cron",
-            hour=0,
-            minute=1,
+            hour=20,
+            minute=0,
+            timezone="Asia/Yerevan",
             id="daily_finance",
             replace_existing=True,
         )
         self._scheduler.start()
+        logger.info("[Scheduler] Планировщик запущен: выполнение ежедневно в 20:00 (Asia/Yerevan)")
 
     def stop(self):
         if self._scheduler.running:
             self._scheduler.shutdown(wait=False)
 
     def run_daily_tasks(self):
-        today = datetime.utcnow()
+        # Текущая дата и время строго по часовому поясу Армении
+        now_am = datetime.now(ARMENIA_TZ)
+        today = now_am.replace(tzinfo=None)
         current_day = today.day
         current_ym = f"{today.year:04d}-{today.month:02d}"
+
+        logger.info(f"[Scheduler] Старт ежедневных задач за {today.date()} (20:00 Asia/Yerevan)")
 
         db: Session = SessionLocal()
         try:
@@ -103,6 +113,23 @@ class ScheduledTasksWorker:
                     logger.info(f"[Scheduler] Исполнен отложенный платёж: {dtx.id} ({dtx.amount} {dtx.currency})")
                 except Exception as exc:
                     logger.error(f"[Scheduler] Ошибка исполнения платежа {dtx.id}: {exc}")
+
+            # 3. Удаление категорий с истекшим сроком действия ("срок годности")
+            expired_categories = (
+                db.query(CategoryModel)
+                .filter(
+                    CategoryModel.expires_at.isnot(None),
+                    CategoryModel.expires_at <= today,
+                )
+                .all()
+            )
+            for exp_cat in expired_categories:
+                try:
+                    db.delete(exp_cat)
+                    db.commit()
+                    logger.info(f"[Scheduler] Категория '{exp_cat.name}' удалена по истечении срока действия.")
+                except Exception as exc:
+                    logger.error(f"[Scheduler] Ошибка удаления просроченной категории {exp_cat.name}: {exc}")
 
         finally:
             db.close()

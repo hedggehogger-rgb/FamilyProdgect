@@ -94,11 +94,16 @@ class Category:
     recurrence_month: Optional[int] = None
     color: str = DEFAULT_CATEGORY_COLOR
     default_amount: Optional[Decimal] = None
+    default_currency: Optional[Currency] = Currency.RUB
     default_account_id: Optional[str] = None
+    expires_at: Optional[datetime] = None
     family_group_id: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
 
     def is_active_at(self, year: int, month: int) -> bool:
+        if self.expires_at:
+            if (year > self.expires_at.year) or (year == self.expires_at.year and month > self.expires_at.month):
+                return False
         if self.periodicity == CategoryPeriodicity.INFINITE:
             return True
         start_year = self.created_at.year

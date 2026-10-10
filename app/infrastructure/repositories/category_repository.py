@@ -6,6 +6,7 @@ from app.domain.models import (
     Category,
     CategoryGroup,
     CategoryPeriodicity,
+    Currency,
     RecurrenceFrequency,
 )
 from app.infrastructure.database import CategoryModel
@@ -32,7 +33,9 @@ class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
                 recurrence_month=category.recurrence_month,
                 color=category.color,
                 default_amount=category.default_amount,
+                default_currency=category.default_currency.value if category.default_currency else "RUB",
                 default_account_id=category.default_account_id,
+                expires_at=category.expires_at,
                 created_at=category.created_at,
             )
             db.merge(model)
@@ -80,7 +83,9 @@ class PostgresCategoryRepository(BasePostgresRepository, ICategoryRepository):
             recurrence_month=getattr(row, "recurrence_month", None),
             color=getattr(row, "color", DEFAULT_CATEGORY_COLOR) or DEFAULT_CATEGORY_COLOR,
             default_amount=Decimal(str(row.default_amount)) if row.default_amount else None,
+            default_currency=Currency(row.default_currency) if getattr(row, "default_currency", None) else Currency.RUB,
             default_account_id=row.default_account_id,
+            expires_at=getattr(row, "expires_at", None),
             family_group_id=row.family_group_id,
             created_at=row.created_at,
         )
